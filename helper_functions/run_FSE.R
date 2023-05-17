@@ -2,20 +2,23 @@ if (!require(quadprog)) install.packages('quadprog', dependencies = T, repos = '
 library(quadprog)
 
 
-run.FSE <- function(epsilon_threshold = .1, error = 0, error.model = 'noisy valuation') {
+run.FSE <- function(epsilon_threshold = .1) {
   
-  if (!error.model %in% c('noisy valuation', 'random mistakes')) stop('Wrong error model!')
-
   # questioning ---------------------------------------------------------------
   
+  # initialization for questions
   sim.answers <- data.frame(matrix(NA, nrow = 1, ncol = 5))
-  colnames(sim.answers) <- c('p.x', 'z', 'w.p', 's', 's.true')
+  colnames(sim.answers) <- c('p.x', 'z', 'w.p', 's', 's.tilde')
   epsilon <- Inf
   iteration <- 0
+  # initialization for LPs
   A1 <- matrix(rep(rep(0, m), m), ncol = m)
   diag(A1) <- 1
+  # bounds with no answers
   lower_bound <- I_spline(helper, order, interior_knots = chosen.xi, individual = T)[, m]
   upper_bound <- I_spline(helper, order, interior_knots = chosen.xi, individual = T)[, 1]
+  D <- upper_bound - lower_bound
+  # create storage for bounds
   bound.list <- list(
     rbind(
       lower_bound,
@@ -26,91 +29,41 @@ run.FSE <- function(epsilon_threshold = .1, error = 0, error.model = 'noisy valu
   while (epsilon > epsilon_threshold) {
     iteration <- iteration + 1
     
+    # find next p
+    candidates <- D == max(D)
+    ## checks whether more than one candidate for next p exists
+    if (sum(candidates) == 1) { # if one point exists
+      sim.answers[iteration, 1] <- helper[candidates]
+    } else { # if multiple points exist
+      warning('multiple optimal bisection points')    
+      abs.distance.from.middle <- abs(helper[candidates] - .5)
+      sim.answers[iteration, 1] <- tail(helper[candidates][abs.distance.from.middle == max(abs.distance.from.middle)], 1)
+    }
+    
+    # compute next z and w.p
+    w.p_t <- (upper_bound + lower_bound)[helper == sim.answers[iteration, 1]] / 2
+    sim.answers[iteration, 2] <- w.p_t * (x - y) + y
+    sim.answers[iteration, 3] <- w.p_t
+      
+    # asks the question and records the truth
+    sim.answers[iteration, 4] <- defining.function(sim.answers[iteration, 1]) < sim.answers[iteration, 3]
+    sim.answers[iteration, 5] <- ifelse(sim.answers[iteration, 4], 1, -1)
+    
+    # prepare parameters for LPs
+    ## needs to be a matrix with M rows and a column per question
     if (iteration == 1) {
-      
-      sim.answers[iteration, 1] <- .9
-      sim.answers[iteration, 2] <- 65
-      sim.answers[iteration, 3] <- ((sim.answers[iteration, 2] - y) / (x - y))
-      
+      A2 <- t(sim.answers$s.tilde * t(I_spline(sim.answers$p.x, order, interior_knots = chosen.xi, individual = T)))
     } else {
-      
-      D <- upper_bound - lower_bound
-      new.w.p <- ((upper_bound + lower_bound)[D == max(D)] / 2)[1]
-      
-      if (length(D[D == max(D)]) == 1) {
-        sim.answers[iteration, 1] <- helper[D == max(D)]
-      } else {
-        warning('multiple optimal bisection points')      
-        sim.answers[iteration, 1] <- helper[D == max(D)][which.max(abs(helper[D == max(D)] - .5))]
-      }
-      sim.answers[iteration, 2] <- (new.w.p) * (x - y) + y
-      sim.answers[iteration, 3] <- new.w.p
+      A2 <- t(sim.answers$s.tilde * I_spline(sim.answers$p.x, order, interior_knots = chosen.xi, individual = T))
     }
-    
-    sim.answers[iteration, 5] <- defining.function(sim.answers[iteration, 1]) < sim.answers[iteration, 3]
-    
-    if (error.model == 'noisy valuation') {
-      sim.answers[iteration, 4] <- 
-        defining.function(sim.answers[iteration, 1]) + rnorm(1, 0, error) < sim.answers[iteration, 3]
-    } else {
-      sim.answers[iteration, 4] <- 
-        ifelse(rbinom(1, 1, error), !sim.answers[iteration, 5], sim.answers[iteration, 5])
-    }
-    
-    ## update upper and lower bounds  
-    input_lower <- sim.answers[sim.answers$s == 0, ]
-    input_upper <- sim.answers[sim.answers$s == 1, ]
-    
-    ## both positive number of constraints
-    if(nrow(input_lower) != 0 && nrow(input_upper) != 0) {
-      A2 <- t(rbind(I_spline(input_lower$p.x, order, interior_knots = chosen.xi, individual = T),
-                    I_spline(input_upper$p.x, order, interior_knots = chosen.xi, individual = T)))
-      
-      b <- c(1,
-             rep(0, m),
-             input_lower$w.p,
-             input_upper$w.p
-      )
-      
-      constraint_signs <- c("==", 
-                            rep(">=", m),
-                            rep(">=", length(input_lower$w.p)),
-                            rep("<=", length(input_upper$w.p)))
-    }
-    
-    ## if no lower bound constraints
-    if(nrow(input_lower) == 0 && nrow(input_upper) != 0) {
-      A2 <- t(I_spline(input_upper$p.x, order, interior_knots = chosen.xi, individual = T))
-      
-      b <- c(1,
-             rep(0, m),
-             input_upper$w.p
-      )
-      
-      constraint_signs <- c("==", 
-                            rep(">=", m),
-                            rep("<=", length(input_upper$w.p)))
-      
-      lower_bound <- I_spline(helper, order, interior_knots = chosen.xi, individual = T)[, m]
-    }
-    
-    ## if no upper bound constraints
-    if(nrow(input_lower) != 0 && nrow(input_upper) == 0) {
-      A2 <- t(I_spline(input_lower$p.x, order, interior_knots = chosen.xi, individual = T))
-      
-      b <- c(1,
-             rep(0, m),
-             input_lower$w.p
-      )
-      
-      constraint_signs <- c("==", 
-                            rep(">=", m),
-                            rep(">=", length(input_lower$w.p)))
-      
-      upper_bound <- I_spline(helper, order, interior_knots = chosen.xi, individual = T)[, 1]
-    }
-    
-    if(1 %in% dim(A2)) A2 <- t(A2)
+    b <- c(1,
+           rep(0, m),
+           sim.answers$s.tilde * sim.answers$w.p
+    )
+    constraint_signs <- c("==", 
+                          rep(">=", m),
+                          rep("<=", nrow(sim.answers))
+    )
     A <- t(cbind(
       rep(1, m),
       A1,
@@ -151,8 +104,8 @@ run.FSE <- function(epsilon_threshold = .1, error = 0, error.model = 'noisy valu
 
   # representative shape ----------------------------------------------------
 
-  sim.answers$s <- ifelse(sim.answers$s == 1, 1, -1)
-  sim.answers$s.true <- ifelse(sim.answers$s.true == 1, 1, -1)
+  sim.answers$s <- sim.answers$s.tilde
+  sim.answers$s.true <- sim.answers$s.tilde
   sim.answers$correct <- sim.answers$s == sim.answers$s.true
   X <- sim.answers$w.p - I_spline(sim.answers$p.x, order, interior_knots = chosen.xi, individual = T)
   X <- X * sim.answers$s
