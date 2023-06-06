@@ -61,34 +61,46 @@ def I_knots_sequence(k, interior_knots, boundary_knots = (0,1)):
     return t
 
 
-def I_basis(i, x, k, t): # @ TODO here is the issue, I want to vectorize it but i am not sure how to it
-    if not (i in range(1, len(t)-k+1)):
+def I_basis(i, x, k, t, verbose = False): # @ TODO here is the issue, I want to vectorize it but i am not sure how to it
+    
+    knot_seq_len = len(t)
+
+    if not (i in range(1, knot_seq_len-k+1)):
         raise ValueError("i > m = length(t) - k.")
-    #if x == 1:
-    #    x = 1 - (np.e if 'e' in locals() else 0.000000000001)
+    
 
-    #x = np.array(x)  # Convert x to a NumPy array if it's not already
-    #t = np.array(t)  # Convert t to a NumPy array if it's not already
+    # force np.array on x and t
+    x = np.array(x)  # Convert x to a NumPy array if it's not already
+    t = np.array(t)  # Convert t to a NumPy array if it's not already
 
-    j = np.sum((((x[:, None] >= t) & (x[:, None] < np.concatenate((t[1:], [1]))))), axis=1)
-    print("j", j)
-    print("i", i)
+    # if x == 1, reduce by epsilon amount for finding j
+    x[x == 1] = 1 - np.finfo(np.float32).eps
+    if verbose:
+        print('x', x)
 
-    if np.all(i > j): #@ TODO is what we want??
-        out = 0
+    # find indicator j such that t_j <= x < t_{j+1} 
+    j = np.array(list(map(lambda xx : np.where((xx >= t[:-1]) & (xx < t[1:]))[0][0], x))) + 1
+    if verbose:
+        print('j', j)
 
-    #out = np.where(i > j, 0, np.empty_like(j)) # @TODO or this
-    #if True:
-    #    pass
-    elif i < j - k + 1:
+    def I_basis_value(jx):
+        j, x = jx
+        print(j, x)
+        
+        if i > j : 
+            out = 0
+        elif i < j - k + 1:
             out = 1
-    else:
-        out = np.matmul(
-            calc_basis(t, np.arange(i, j+1), k),
-            np.apply_along_axis(lambda i: M_basis(i, x=x, k=k+1, t=t), axis=1, arr=np.arange(i, j+1))
-        )
+        else:
+            #### THIS SEEMS RIGHT BUT NEEDS MORE CHECKS
+            out = sum(map(
+                lambda ii : (t[ii + k] - t[ii - 1]) / (k + 1) * M_basis(ii - 1, x = x, k = k + 1, t = t), 
+                range(i, j + 1)))
+        
+        return out
 
-    return out
+    return np.array(list(map(I_basis_value, zip(j, x))))
+
 
 def I_spline(k, interior_knots, x=0, lambdas=None, individual=False, boundary_knots = (0,1), exclude_constant_splines = True):
     t = I_knots_sequence(k, interior_knots, boundary_knots)
@@ -130,6 +142,6 @@ y = np.array([min(max(1.2 * xi + np.random.normal(0, 0.2), 0), 1) for xi in x])
 e = 1e-12
 
 
-print("output", I_basis(2, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1)))
+print("output", I_basis(2, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=True))
 
 #I_spline(x=x, k=3, interior_knots=[.1, .5, .9], individual = True)
