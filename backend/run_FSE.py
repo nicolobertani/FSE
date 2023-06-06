@@ -1,15 +1,13 @@
-import pandas as pd
-import numpy as np
-import math
-
-
 import numpy as np
 from I_spline_M_spline import I_spline
 import warnings
 from scipy.optimize import linprog, minimize
 
-
-helper = np.arange(0, 1.01, 0.01) # @ TODO is it this?
+order = 3
+helper = np.arange(0.01, 1.0, 0.01)
+chosen_xi = (.1, .9)
+x = 120
+y = 10
 
 def run_FSE(epsilon_threshold=0.1):
     # questioning ---------------------------------------------------------------
@@ -25,8 +23,8 @@ def run_FSE(epsilon_threshold=0.1):
     A1 = np.zeros((m, m))
     np.fill_diagonal(A1, 1)
     # bounds with no answers
-    lower_bound = I_spline(helper, order, interior_knots=chosen.xi, individual=True)[:, m]
-    upper_bound = I_spline(helper, order, interior_knots=chosen.xi, individual=True)[:, 1]
+    lower_bound = I_spline(x=helper, k=order, interior_knots=chosen_xi, individual=True)[:, m]
+    upper_bound = I_spline(x=helper, k=order, interior_knots=chosen_xi, individual=True)[:, 1]
     D = upper_bound - lower_bound
     # create storage for bounds
     bound_list = [np.vstack((lower_bound, upper_bound))]
@@ -49,26 +47,26 @@ def run_FSE(epsilon_threshold=0.1):
         sim_answers[iteration, 2] = w_p_t
 
         # asks the question and records the truth
-        sim_answers[iteration, 3] = defining_function(sim_answers[iteration, 0]) < sim_answers[iteration, 2]
+        sim_answers[iteration, 3] = 1 #defining_function(sim_answers[iteration, 0]) < sim_answers[iteration, 2]
         sim_answers[iteration, 4] = 1 if sim_answers[iteration, 3] else -1
 
         # prepare parameters for LPs
         if iteration == 1:
-            A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * np.transpose(I_spline(sim_answers[:, 0], order, interior_knots=chosen.xi, individual=True)))
+            A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * np.transpose(I_spline(x=sim_answers[:, 0], k=order, interior_knots=chosen_xi, individual=True)))
         else:
-            A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * I_spline(sim_answers[:, 0], order, interior_knots=chosen.xi, individual=True))
+            A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * I_spline(x=sim_answers[:, 0], k=order, interior_knots=chosen_xi, individual=True))
         b = np.concatenate(([1], np.zeros(m), sim_answers[:, 4] * sim_answers[:, 2]))
         constraint_signs = np.concatenate((["=="], np.repeat(">=", m), np.repeat("<=", sim_answers.shape[0])))
         A = np.transpose(np.vstack((np.repeat(1, m), A1, A2)))
 
         # calculate lower bound
-        lower_bound = np.apply_along_axis(lambda local_x: minimize(lambda c: np.dot(c, I_spline(local_x, 3, interior_knots=chosen.xi, individual=True)),
+        lower_bound = np.apply_along_axis(lambda local_x: minimize(lambda c: np.dot(c, I_spline(x=local_x, k=3, interior_knots=chosen_xi, individual=True)),
                                                                    np.zeros(m), bounds=[(None, None)] * m,
                                                                    constraints={'type': constraint_signs, 'fun': lambda c: np.dot(c, A.T) - b}).fun,
                                           axis=0, arr=helper)
 
         # calculate upper bound
-        upper_bound = np.apply_along_axis(lambda local_x: minimize(lambda c: -np.dot(c, I_spline(local_x, order, interior_knots=chosen.xi, individual=True)),
+        upper_bound = np.apply_along_axis(lambda local_x: minimize(lambda c: -np.dot(c, I_spline(x=local_x, k=order, interior_knots=chosen_xi, individual=True)),
                                                                    np.zeros(m), bounds=[(None, None)] * m,
                                                                    constraints={'type': constraint_signs, 'fun': lambda c: np.dot(c, A.T) - b}).fun,
                                           axis=0, arr=helper)
@@ -85,7 +83,7 @@ def run_FSE(epsilon_threshold=0.1):
     sim_answers[:, 3] = sim_answers[:, 4]
     sim_answers[:, 4] = sim_answers[:, 4]
     sim_answers[:, 5] = sim_answers[:, 4] == sim_answers[:, 5]
-    X = sim_answers[:, 2] - I_spline(sim_answers[:, 0], order, interior_knots=chosen.xi, individual=True)
+    X = sim_answers[:, 2] - I_spline(x=sim_answers[:, 0], k=order, interior_knots=chosen_xi, individual=True)
     X = X * sim_answers[:, 3]
     # setup of constraints
     D = np.zeros((X.shape[1], X.shape[1]))
