@@ -16,7 +16,7 @@ def M_knots_sequence(k, interior_knots, boundary_knots=(0, 1)):
     t = [min(boundary_knots)] * k + interior_knots + [max(boundary_knots)] * k
     return t
 
-def M_basis_vect(i, x, k, t, verbose=True): # @TODO attempt of vectorized function, same way as I-basis
+def M_basis (i, x, k, t, verbose=False):
 
     knot_seq_len = len(t)
 
@@ -26,42 +26,28 @@ def M_basis_vect(i, x, k, t, verbose=True): # @TODO attempt of vectorized functi
     # force np.array on x and t
     x = np.array(x)  # Convert x to a NumPy array if it's not already
     t = np.array(t)  # Convert t to a NumPy array if it's not already
-
+   
     # if x == 1, reduce by epsilon amount for finding j
     x[x == 1] = 1 - np.finfo(np.float32).eps
-    print("t", t)
     if verbose:
         print('x', x)
 
-    def M_basis_value(x_):
-        out = 0
+    def M_basis_in(i, x, k, t):
+        
         if k == 1:
-            if x_ >= t[i] and x_ < t[i]:
-                out = 1 / (t[i + 1] - t[i])
-
-        elif t[i + k - 1] > t[i-1]:
-            (k * ((x_ - t[i]) * M_basis(i, x_, k - 1, t) + (t[i + k] - x_) * M_basis(i + 1, x_, k - 1, t))) / ((k - 1) * (t[i + k] - t[i]))
-        return out
-
-    print("error", map(M_basis_value, x))
-    return np.array(list(map(M_basis_value, x)))
-
-
-def M_basis(i, x, k, t): # Version used until now
-    # be careful with indexes, ≠ than in R
-    if (i + k > len(t)):
-        raise ValueError("i + k > |t|.")
-    if x == 1:
-        x -= 1 * 10 ** -8
-        # @ TODO here the code is unclear
-    out = 0
-    if k == 1:
-        if t[i] <= x < t[i + 1]:
-            out = 1 / t[i+1] - t[i]
-    else:
-        if t[i+k] > t[i]:
-            out = k * ((x - t[i]) * M_basis(i, x, k - 1, t) + (t[i + k] - x) * M_basis(i + 1, x, k - 1, t))  / ((k - 1) * (t[i + k] - t[i]))
-    return out
+            if (x >= t[i]) & (x < t[i + 1]):
+                return(1 / (t[i + 1] - t[i]))
+            else:
+                return(0)
+        else:
+            if t[i + k] > t[i]:
+                return(
+                    k * ((x - t[i]) * M_basis_in(i, x, k - 1, t) + (t[i + k] - x) * M_basis_in(i + 1, x, k - 1, t))  / ((k - 1) * (t[i + k] - t[i]))
+                    )
+            else:
+                return(0)
+        
+    return(np.array(list(map(lambda xx : M_basis_in(i - 1, xx, k, t), x))))
 
 
 def M_spline( k, interior_knots, individual = False, boundary_knots = (0,1),  lambdas = None, x=0):
@@ -90,9 +76,6 @@ def I_knots_sequence(k, interior_knots, boundary_knots = (0,1)):
     t = [min(boundary_knots)] * (k+1) + interior_knots + [max(boundary_knots)] * (k+1)
     return t
 
-
-def I_basis(i, x, k, t, verbose=True):
-
     knot_seq_len = len(t)
 
     if not (i in range(1, knot_seq_len-k+1)):
@@ -101,6 +84,9 @@ def I_basis(i, x, k, t, verbose=True):
 
     # force np.array on x and t
     x = np.array(x)  # Convert x to a NumPy array if it's not already
+
+def I_basis(i, x, k, t, verbose=False):
+
     t = np.array(t)  # Convert t to a NumPy array if it's not already
 
     # if x == 1, reduce by epsilon amount for finding j
@@ -174,8 +160,9 @@ y = np.array([min(max(1.2 * xi + np.random.normal(0, 0.2), 0), 1) for xi in x])
 e = 1e-12
 
 
-#print("output", I_basis(2, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=True))
-#print("output", [I_basis(i, x, 3, [0, 0, 0, 0, 0.1, 0.5, 0.9, 1, 1, 1, 1]) for i in range(1, 9)])
-#print("output",I_spline(x=x, k=3, interior_knots=[.1, .5, .9], individual = True))
-print("output M_basis test 1", M_basis(6, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)))
+print("output M_basis test 1", M_basis(3, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)))
+# print("output M_basis", [M_basis(i, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)) for i in range(1, 7)]),
+print("output", I_basis(3, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=False))
+# print("output", [I_basis(i, x, 3, [0, 0, 0, 0, 0.1, 0.5, 0.9, 1, 1, 1, 1]) for i in range(1, 9)])
+# print("output",I_spline(x=x, k=3, interior_knots=[.1, .5, .9], individual = True))
 
