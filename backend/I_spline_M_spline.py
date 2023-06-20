@@ -35,19 +35,19 @@ def M_basis (i, x, k, t, verbose=False):
     def M_basis_in(i, x, k, t):
         
         if k == 1:
-            if (x >= t[i]) & (x < t[i + 1]):
-                return(1 / (t[i + 1] - t[i]))
+            if (x >= t[i - 1]) & (x < t[i]):
+                return(1 / (t[i] - t[i - 1]))
             else:
                 return(0)
         else:
-            if t[i + k] > t[i]:
+            if t[i - 1 + k] > t[i - 1]:
                 return(
-                    k * ((x - t[i]) * M_basis_in(i, x, k - 1, t) + (t[i + k] - x) * M_basis_in(i + 1, x, k - 1, t))  / ((k - 1) * (t[i + k] - t[i]))
+                    k * ((x - t[i - 1]) * M_basis_in(i, x, k - 1, t) + (t[i - 1 + k] - x) * M_basis_in(i + 1, x, k - 1, t))  / ((k - 1) * (t[i - 1 + k] - t[i - 1]))
                     )
             else:
                 return(0)
         
-    return(np.array(list(map(lambda xx : M_basis_in(i - 1, xx, k, t), x))))
+    return(np.array(list(map(lambda xx : M_basis_in(i, xx, k, t), x))))
 
 
 def M_spline( k, interior_knots, individual = False, boundary_knots = (0,1),  lambdas = None, x=0):
@@ -160,7 +160,8 @@ y = np.array([min(max(1.2 * xi + np.random.normal(0, 0.2), 0), 1) for xi in x])
 e = 1e-12
 
 
-print("output M_basis test 1", M_basis(3, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)))
+# print("output M_basis test 1", M_basis(2, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)))
+# print("output M_basis test 1", M_basis(3, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)))
 # print("output M_basis", [M_basis(i, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)) for i in range(1, 7)]),
 print("output", I_basis(3, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=False))
 # print("output", [I_basis(i, x, 3, [0, 0, 0, 0, 0.1, 0.5, 0.9, 1, 1, 1, 1]) for i in range(1, 9)])
