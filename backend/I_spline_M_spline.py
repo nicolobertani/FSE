@@ -47,7 +47,10 @@ def M_basis (i, x, k, t, verbose=False):
             else:
                 return(0)
         
-    return(np.array(list(map(lambda xx : M_basis_in(i, xx, k, t), x))))
+    if np.ndim(x) == 0:
+        return(M_basis_in(i, x, k, t))
+    else:
+        return(np.array(list(map(lambda xx : M_basis_in(i, xx, k, t), x))))
 
 
 def M_spline( k, interior_knots, individual = False, boundary_knots = (0,1),  lambdas = None, x=0):
@@ -110,11 +113,8 @@ def I_basis(i, x, k, t, verbose=False):
         else:
             #### THIS SEEMS RIGHT BUT NEEDS MORE CHECKS
             out = sum(map(
-                lambda ii : (t[ii + k] - t[ii - 1]) / (k + 1) * M_basis(ii - 1, x=x, k=k + 1, t=t), #### @TODO I think that the error comes from here
+                lambda ii : (t[ii + k] - t[ii - 1]) / (k + 1) * M_basis(ii, x, k + 1, t), 
                 range(i, j + 1)))
-            if out == 0.2736: ### @TODO 1st value that shouldnt appear in the array.
-                print("issue")
-        print("j_out", j, out)
         return out
 
     return np.array(list(map(I_basis_value, zip(j, x))))
