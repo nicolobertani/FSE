@@ -26,14 +26,14 @@ def M_basis (i, x, k, t, verbose=False):
     # force np.array on x and t
     x = np.array(x)  # Convert x to a NumPy array if it's not already
     t = np.array(t)  # Convert t to a NumPy array if it's not already
-   
+
     # if x == 1, reduce by epsilon amount for finding j
     x[x == 1] = 1 - np.finfo(np.float32).eps
     if verbose:
         print('x', x)
 
     def M_basis_in(i, x, k, t):
-        
+
         if k == 1:
             if (x >= t[i - 1]) & (x < t[i]):
                 return(1 / (t[i] - t[i - 1]))
@@ -42,21 +42,21 @@ def M_basis (i, x, k, t, verbose=False):
         else:
             if t[i - 1 + k] > t[i - 1]:
                 return(
-                    k * ((x - t[i - 1]) * M_basis_in(i, x, k - 1, t) + (t[i - 1 + k] - x) * M_basis_in(i + 1, x, k - 1, t))  / ((k - 1) * (t[i - 1 + k] - t[i - 1]))
-                    )
+                        k * ((x - t[i - 1]) * M_basis_in(i, x, k - 1, t) + (t[i - 1 + k] - x) * M_basis_in(i + 1, x, k - 1, t))  / ((k - 1) * (t[i - 1 + k] - t[i - 1]))
+                )
             else:
                 return(0)
-        
+
     if np.ndim(x) == 0:
         return(M_basis_in(i, x, k, t))
     else:
         return(np.array(list(map(lambda xx : M_basis_in(i, xx, k, t), x))))
 
 
-def M_spline( k, interior_knots, individual = False, boundary_knots = (0,1),  lambdas = None, x=0):
+def M_spline(k, interior_knots, individual=False, boundary_knots = (0,1),  lambdas = None, x=0):
     t = M_knots_sequence(k, interior_knots, boundary_knots)
     #m = len(t) - k
-    m,= 5 #@TODO check correct
+    m = 5 #@TODO check correct
     if len(lambdas) != m or len(lambdas) != m:
         raise ValueError("Incorrect number of lambdas. Need ", m, "lambdas.")
 
@@ -93,6 +93,7 @@ def I_basis(i, x, k, t, verbose=False):
     t = np.array(t)  # Convert t to a NumPy array if it's not already
 
     # if x == 1, reduce by epsilon amount for finding j
+    print("x_I_basis", x)
     x[x == 1] = 1 - np.finfo(np.float32).eps
     if verbose:
         print('x', x)
@@ -104,7 +105,7 @@ def I_basis(i, x, k, t, verbose=False):
 
     def I_basis_value(jx):
         j, x = jx
-        print(j, x)
+        #print(j, x)
 
         if i > j:
             out = 0
@@ -113,7 +114,7 @@ def I_basis(i, x, k, t, verbose=False):
         else:
             #### THIS SEEMS RIGHT BUT NEEDS MORE CHECKS
             out = sum(map(
-                lambda ii : (t[ii + k] - t[ii - 1]) / (k + 1) * M_basis(ii, x, k + 1, t), 
+                lambda ii : (t[ii + k] - t[ii - 1]) / (k + 1) * M_basis(ii, x, k + 1, t),
                 range(i, j + 1)))
         return out
 
@@ -126,7 +127,7 @@ def I_spline(k, interior_knots, x=0, lambdas=None, individual=False, boundary_kn
     if not exclude_constant_splines:
         value = 0
     m = len(t) - k - value
-    print("lambdas", lambdas )
+    #print("lambdas", lambdas )
     if lambdas not in (None,m):
         raise ValueError("Incorrect number of lambdas. Need ", m, " lambdas.")
     if lambdas and individual:
@@ -142,6 +143,7 @@ def I_spline(k, interior_knots, x=0, lambdas=None, individual=False, boundary_kn
         out = [I_basis(i, x, k, t) for i in i_sequence]
     else:
         out = np.dot(np.array([I_basis(i, x, k, t) for i in i_sequence]), lambdas)
+    print("out", out)
     return out
 
 
@@ -153,7 +155,7 @@ import numpy as np
 x = np.sort(np.random.rand(100))
 # Generate a sequence from 0 to 1 with a step of 0.01
 x = np.arange(0, 1.01, 0.01)
-print("x", x)
+#print("x", x)
 # Calculate y values using a lambda function
 y = np.array([min(max(1.2 * xi + np.random.normal(0, 0.2), 0), 1) for xi in x])
 # Set the value of e
@@ -163,7 +165,20 @@ e = 1e-12
 # print("output M_basis test 1", M_basis(2, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)))
 # print("output M_basis test 1", M_basis(3, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)))
 # print("output M_basis", [M_basis(i, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1)) for i in range(1, 7)]),
-print("output", I_basis(3, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=False))
+#print("output", I_basis(3, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=False))
 # print("output", [I_basis(i, x, 3, [0, 0, 0, 0, 0.1, 0.5, 0.9, 1, 1, 1, 1]) for i in range(1, 9)])
 # print("output",I_spline(x=x, k=3, interior_knots=[.1, .5, .9], individual = True))
 
+
+## check M_basis
+#print("output M_basis test 1", M_basis(6, x, 3, (0, 0, 0, .1, .5, .9, 1, 1, 1))) # confirmed
+
+## check M spline
+#print("ouput M_spline test 1", M_spline(3, [.1, .5, .9], individual=True, x=x)) # not confirmed # @TODO confirm
+
+## check I_basis
+#print("output I_basis test 1", I_basis(2, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=False))  # confirmed
+#print("output I basis test 2", [I_basis(i, x, 3, [0, 0, 0, 0, 0.1, 0.5, 0.9, 1, 1, 1, 1]) for i in range(1, 9)]) # confirmed
+
+## Check I_spline
+#print("output I spline test 1",I_spline(x=x, k=3, interior_knots=[.1, .5, .9], individual = True)) ## confirmed
