@@ -91,15 +91,18 @@ def I_knots_sequence(k, interior_knots, boundary_knots = (0,1)):
 def I_basis(i, x, k, t, verbose=False):
 
     t = np.array(t)  # Convert t to a NumPy array if it's not already
-
+    x = np.array(x) # convert to array
     # if x == 1, reduce by epsilon amount for finding j
-    print("x_I_basis", x)
+    #print("x_I_basis", x)
     x[x == 1] = 1 - np.finfo(np.float32).eps
     if verbose:
         print('x', x)
 
     # find indicator j such that t_j <= x < t_{j+1}
-    j = np.array(list(map(lambda xx: np.where((xx >= t[:-1]) & (xx < t[1:]))[0][0], x))) + 1
+    if np.ndim(x) == 0:
+        j = np.where((x >= t[:-1]) & (x < t[1:]))[0][0]
+    else:
+        j = np.array(list(map(lambda xx: np.where((xx >= t[:-1]) & (xx < t[1:]))[0][0], x))) + 1
     if verbose:
         print('j', j)
 
@@ -117,8 +120,10 @@ def I_basis(i, x, k, t, verbose=False):
                 lambda ii : (t[ii + k] - t[ii - 1]) / (k + 1) * M_basis(ii, x, k + 1, t),
                 range(i, j + 1)))
         return out
-
-    return np.array(list(map(I_basis_value, zip(j, x))))
+    if np.ndim(x) == 0:
+        return I_basis_value((j,x))
+    else:
+        return np.array(list(map(I_basis_value, zip(j, x))))
 
 
 def I_spline(k, interior_knots, x=0, lambdas=None, individual=False, boundary_knots = (0,1), exclude_constant_splines = True):
@@ -143,7 +148,7 @@ def I_spline(k, interior_knots, x=0, lambdas=None, individual=False, boundary_kn
         out = [I_basis(i, x, k, t) for i in i_sequence]
     else:
         out = np.dot(np.array([I_basis(i, x, k, t) for i in i_sequence]), lambdas)
-    print("out", out)
+    #print("out", out)
     return out
 
 
@@ -181,4 +186,4 @@ e = 1e-12
 #print("output I basis test 2", [I_basis(i, x, 3, [0, 0, 0, 0, 0.1, 0.5, 0.9, 1, 1, 1, 1]) for i in range(1, 9)]) # confirmed
 
 ## Check I_spline
-#print("output I spline test 1",I_spline(x=x, k=3, interior_knots=[.1, .5, .9], individual = True)) ## confirmed
+print("output I spline test 1",I_spline(x=x, k=3, interior_knots=[.1, .9], individual = True)) ## confirmed

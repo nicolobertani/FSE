@@ -59,7 +59,7 @@ def run_FSE(epsilon_threshold=0.1):
         sim_answers[iteration-1, 2] = w_p_t
 
         # asks the question and records the truth
-        sim_answers[iteration-1, 3] = 1 #defining_function(sim_answers[iteration, 0]) < sim_answers[iteration, 2]
+        sim_answers[iteration-1, 3] = 0 # @TODO check that correct because hard coded #defining_function(sim_answers[iteration, 0]) < sim_answers[iteration, 2]
         sim_answers[iteration-1, 4] = 1 if sim_answers[iteration-1, 3] else -1
 
         # prepare parameters for LPs
@@ -67,7 +67,7 @@ def run_FSE(epsilon_threshold=0.1):
             A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * np.transpose(I_spline(x=sim_answers[:, 0], k=order, interior_knots=chosen_xi, individual=True)))
         else:
             A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * I_spline(x=sim_answers[:, 0], k=order, interior_knots=chosen_xi, individual=True))
-        print("A2", A2)
+        print("A2", A2) # the signs are the opposite
         b = np.concatenate(([1], np.zeros(m), sim_answers[:, 4] * sim_answers[:, 2]))
         constraint_signs = np.concatenate((["eq"], np.repeat("ineq", m), np.repeat("ineq", sim_answers.shape[0])))
         print("A1", A1)
@@ -81,26 +81,63 @@ def run_FSE(epsilon_threshold=0.1):
 
         constraint_signs = ["=="] + [">="] * m + ["<="] * sim_answers.shape[0]
 
-        lower_bound = np.zeros(helper.shape[0])  # Initialize the lower_bound array
+        #lower_bound = np.zeros(helper.shape[0])  # Initialize the lower_bound array
 
         for i, local_x in enumerate(helper):
-            c = I_spline(x=local_x, k=3, interior_knots=chosen_xi, individual=True)
+            print(chosen_xi)
+
+            c = I_spline(x=local_x, k=3, interior_knots=chosen_xi, individual=True) # the results of c are a bit different, but very close @ TODO check thats the error
+            print("c", c)
             sol = opt.linprog(
             c=c,
-            A_ub=np.array([A[i] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs)]),
-            b_ub=b,
+            A_eq= [A[0]],
+            A_ub=np.array([A[i+1] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs[1:])]),
+            b_eq=b[0],
+            b_ub= np.array([b[i+1] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs[1:])]),
             method="highs",
             bounds=(None, None),
             options={"presolve": False, "sparse": True}
             )
             lower_bound[i] = np.dot(sol.x, c)
 
+            #### print to help
+
+            A_eq= A[0],
+            A_ub=np.array([A[i+1] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs[1:])])
+            b_eq= [b[0]]
+            b_ub= np.array([b[i+1] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs[1:])])
+            print("LP Formulation:")
+            print("Minimize:", end=" ")
+            for i, coeff in enumerate(c):
+                print(f"{coeff}x{i+1}", end=" ")
+            print()
+
+            print("Subject to:")
+
+            # Equality constraints
+            for i, constraint in enumerate(A_eq):
+                print("  ", end="")
+                for j, coeff in enumerate(list(constraint)):
+                    print(f"{coeff}x{j+1}", end=" ")
+                print("=", b_eq[i])
+
+            # Inequality constraints
+            for i, constraint in enumerate(A_ub):
+                print("  ", end="")
+                for j, coeff in enumerate(constraint):
+                    print(f"{coeff}x{j+1}", end=" ")
+                print("<=", b_ub[i])
+
+            print("Bounds:")
+            for i, coeff in enumerate(c):
+                print(f"  x{i+1} >= 0")
+
             # Print or use the lower_bound array as needed
-        print(lower_bound)
+        print("lower_bound", lower_bound)
         print("stop")
 
 
-        ####
+        #### issue after that --> NORMAL
 
 
         # calculate lower bound
