@@ -8,7 +8,7 @@ import scipy.optimize as opt
 
 
 order = 3
-helper = np.arange(0.01, 1.0, 0.01)
+helper = np.arange(0.00, 1.0, 0.01)
 chosen_xi = [.1, .9]
 x = 120
 y = 10
@@ -84,6 +84,7 @@ def run_FSE(epsilon_threshold=0.1):
         #lower_bound = np.zeros(helper.shape[0])  # Initialize the lower_bound array
 
         for i, local_x in enumerate(helper):
+            print("local_x", local_x)
             print(chosen_xi)
 
             c = I_spline(x=local_x, k=3, interior_knots=chosen_xi, individual=True) # the results of c are a bit different, but very close @ TODO check thats the error
@@ -103,7 +104,7 @@ def run_FSE(epsilon_threshold=0.1):
             #### print to help
 
             A_eq= A[0],
-            A_ub=np.array([A[i+1] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs[1:])])
+            A_ub= np.array([A[i+1] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs[1:])])
             b_eq= [b[0]]
             b_ub= np.array([b[i+1] * (-1 if sign == ">=" else 1) for i, sign in enumerate(constraint_signs[1:])])
             print("LP Formulation:")
@@ -132,8 +133,11 @@ def run_FSE(epsilon_threshold=0.1):
             for i, coeff in enumerate(c):
                 print(f"  x{i+1} >= 0")
 
+            print("results", sol.x)
+
             # Print or use the lower_bound array as needed
         print("lower_bound", lower_bound)
+        print("sim answers", sim_answers)
         print("stop")
 
 
