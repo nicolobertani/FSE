@@ -17,11 +17,15 @@ m = 5
 def run_FSE(epsilon_threshold=0.1, verbose = False):
     # questioning ---------------------------------------------------------------
 
+    iteration = 0
+
     # initialization for questions
     colnames = ['p_x', 'z', 'w_p', 's', 's_tilde']
     sim_answers = pd.DataFrame(columns=colnames)
+    if verbose:
+        print("sim_answers", sim_answers)
+    
     epsilon = np.inf
-    iteration = 0
     # initialization for LPs
     A1 = np.zeros((m, m))
     np.fill_diagonal(A1, -1)
@@ -34,8 +38,8 @@ def run_FSE(epsilon_threshold=0.1, verbose = False):
     # create storage for bounds
     bound_list = [np.vstack((lower_bound, upper_bound))]
 
-    # while epsilon > epsilon_threshold:
-    while iteration < 1:
+    while epsilon > epsilon_threshold:
+    # while iteration < 2:
 
         # find next p
         candidates = D == np.max(D)
@@ -44,11 +48,7 @@ def run_FSE(epsilon_threshold=0.1, verbose = False):
         else:  # if multiple points exist
             warnings.warn('Warning: multiple optimal bisection points')
             abs_distance_from_middle = np.abs(helper[candidates] - 0.5)
-            print("error", np.array(helper[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][-1])
-            print('second error', sim_answers.loc[iteration, "p_x"])
-            print("iteration", iteration)
             sim_answers.loc[iteration, "p_x"] = np.array(helper[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][-1]
-
 
         # compute next z and w.p
         w_p_t = (upper_bound + lower_bound)[helper == sim_answers.loc[iteration, "p_x"]] / 2
@@ -60,20 +60,20 @@ def run_FSE(epsilon_threshold=0.1, verbose = False):
         sim_answers.loc[iteration, "s_tilde"] = 1 if sim_answers.loc[iteration, "s"] else -1
         
         if verbose:
-            print("sim answers", sim_answers)
+            print("sim answers\n", sim_answers)
+            print(sim_answers["p_x"])
+            print(sim_answers["s_tilde"])
 
 
         # prepare parameters for LPs
-        if iteration == 1:
-            A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * np.transpose(I_spline(x=sim_answers[:, 0], k=order, interior_knots=chosen_xi, individual=True)))
-        else:
-            A2 = np.transpose(sim_answers[:, 4].reshape(-1, 1) * I_spline(x=sim_answers[:, 0], k=order, interior_knots=chosen_xi, individual=True))
-        print("A2", A2) # the signs are the opposite
+        A2 = sim_answers["s_tilde"].values * I_spline(x = sim_answers["p_x"], k=order, interior_knots=chosen_xi, individual=True)
         A = np.column_stack((A1, A2)).T
-        print("A", A)
-        print("A", A.ndim)
-        b = np.concatenate((np.zeros(m), sim_answers[:, 4] * sim_answers[:, 2]))
-        print("b", b)
+        b = np.concatenate((np.zeros(m), sim_answers["s_tilde"].values * sim_answers["w_p"].values))
+        if verbose:
+            print("A2", A2) # the signs are the opposite
+            print("A", A)
+            print("A", A.ndim)
+            print("b", b)
 
 
         for i, local_x in enumerate(helper):
@@ -105,8 +105,9 @@ def run_FSE(epsilon_threshold=0.1, verbose = False):
 
         
         # Print or use the lower_bound array as needed
-        print("lower_bound", lower_bound)
-        print("upper_bound", upper_bound)
+        if verbose:
+            print("lower_bound", lower_bound)
+            print("upper_bound", upper_bound)
 
         # calculate max difference based on updated bounds
         D = upper_bound - lower_bound
@@ -146,4 +147,4 @@ def run_FSE(epsilon_threshold=0.1, verbose = False):
     return(bound_list)
 
 
-run_FSE()
+print(run_FSE(verbose = False)[-1])
