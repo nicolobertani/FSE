@@ -186,8 +186,8 @@ e = 1e-12
 #print("output I_basis test 1", I_basis(2, x, 3, (0,0,0,0,.1,.5,.9,1,1,1,1), verbose=False))  # confirmed
 #print("output I basis test 2", [I_basis(i, x, 3, [0, 0, 0, 0, 0.1, 0.5, 0.9, 1, 1, 1, 1]) for i in range(1, 9)]) # confirmed
 
-print("output I spline test 1", 
-      I_spline(x = .12, k = 3, interior_knots = [.1, .9], individual = True)) ## confirmed
+# print("output I spline test 1", 
+#       I_spline(x = .12, k = 3, interior_knots = [.1, .9], individual = True)) ## confirmed
 
-print("output I spline test 1", 
-      I_spline(x = x, k = 3, interior_knots = [.1, .9], individual = True)[:, 12])
+# print("output I spline test 1", 
+#       I_spline(x = x, k = 3, interior_knots = [.1, .9], individual = True)[:, 12])
