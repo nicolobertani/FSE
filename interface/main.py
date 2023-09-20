@@ -1,4 +1,5 @@
 import sys
+from backend.model_interface import Model
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QVBoxLayout
 from PyQt5.QtChart import QChart, QChartView, QPieSeries
 from PyQt5 import QtWidgets
@@ -12,15 +13,22 @@ class MyWindow(QMainWindow):
         initialize the main window
         """
         super(MyWindow, self).__init__()
+        # adding Folder_2 to the system path
+        sys.path.insert(0, '/Users/mathieuleng/PycharmProjects/FSE/backend')
+        self.iteration = 0
         self.xpos = 0
         self.ypos = 0
         self.width = 600
         self.height = 600
+        self.sure_amount = 65.0
+        self.lottery_1 = 10
+        self.lottery_2 = 120
+        self.proba = 90.0
         self.lottery = []
-        self.questionCount = 0
         self.setGeometry(self.xpos, self.ypos, self.width, self.height)
         self.setWindowTitle("Lottery Check")
-        self.createLotteryChoices()
+        self.model = Model()
+        self.sentence_string = "Do you prefer to win for sure <b>{} </b> or play the lottery and win <b>{} </b> with <b>{}% probabilities </b> or <b>{} </b> if you lose the lottery"
         self.createCharts()
         self.initUI()
 
@@ -29,17 +37,17 @@ class MyWindow(QMainWindow):
         create the 2 charts
         :return:
         """
-        x1, x2, x3, x4 = self.lottery[self.questionCount]
+        #x1, x2, x3, x4 = self.lottery[self.questionCount]
         self.series1 = QPieSeries()
-        self.series1.append("{}".format(x1), 100)
+        self.series1.append("{}".format(self.sure_amount), 100)
         self.chart1 = QChart()
         self.chart1.addSeries(self.series1)
         self.chart1.setTitle("Sure Option")
         self.chart1.setTitleFont(QFont("Arial", 20))
 
         self.series2 = QPieSeries()
-        self.series2.append("{}".format(x2), x3)
-        self.series2.append("{}".format(x4), 100-x3)
+        self.series2.append("{}".format(self.lottery_1), self.proba)
+        self.series2.append("{}".format(self.lottery_2), 100-self.proba)
         self.chart2 = QChart()
         self.chart2.addSeries(self.series2)
         self.chart2.setTitle("Lottery")
@@ -51,14 +59,12 @@ class MyWindow(QMainWindow):
         updates the charts
         :return:
         """
-        print(self.questionCount)
-        x1, x2, x3, x4 = self.lottery[self.questionCount]
         self.series1.clear()
-        self.series1.append("{}".format(x1), 100)
+        self.series1.append("{}".format(self.sure_amount), 100)
 
         self.series2.clear()
-        self.series2.append("{}".format(x2), x3)
-        self.series2.append("{}".format(x4), 100-x3)
+        self.series2.append("{}".format(self.lottery_1), self.proba)
+        self.series2.append("{}".format(self.lottery_2), 100-self.proba)
 
         # update the chart views
         self.chart1.update()
@@ -80,6 +86,7 @@ class MyWindow(QMainWindow):
         messageWidget = QWidget()
         messageWidget.setLayout(messageLayout)
         self.setCentralWidget(messageWidget)
+        print(self.model.get_sim_answers())
 
     def toggleOption1(self):
         """
@@ -111,14 +118,28 @@ class MyWindow(QMainWindow):
         :return:
         """
         if self.option2Clicked or self.option1Clicked:
-            self.updateText()
-            self.update()
-            self.updateCharts()
-            self.resetButtons()
-            if self.questionCount <= 11:
-                self.questionCount += 1
+            self.iteration += 1
+            if self.model.get_epsilon() > 0.1:
+                if self.option1Clicked:
+                    self.sure_amount, self.proba = self.model.calculate(1)
+                    #print("sure_amount")
+                else:
+                    self.sure_amount, self.proba = self.model.calculate(0)
+                    #print("lottery")
+                self.sure_amount = round(float(self.sure_amount),2)
+                self.proba = round(float(self.proba) * 100,0)
+                self.updateText()
+                self.update()
+                self.updateCharts()
+                self.resetButtons()
+                #print("s_a", self.sure_amount)
+                #print("proba", self.proba)
+                self.model.save_sim_answers()
+
             else:
                 self.finished()
+
+
 
 
     def createButtons(self):
@@ -200,18 +221,15 @@ class MyWindow(QMainWindow):
         updates the different texts
         :return:
         """
-        x1, x2, x3, x4 = self.lottery[self.questionCount]
-        x5 = 100 - int(x3)
-        self.sentence.setText(self.sentence_string.format(x1, x2, x3, x4))
-        self.option1.setText('Win {}'.format(x1))
-        self.option2.setText('Win {} with {}% chances or {} with {}% chances '.format(x2, x3, x4,str(x5)))
+        #x1, x2, x3, x4 = self.lottery[self.questionCount]
+        x5 = 100 - int(self.proba)
+        self.sentence.setText(self.sentence_string.format(self.sure_amount, self.lottery_1, self.proba, self.lottery_2))
+        self.option1.setText('Win {}'.format(self.sure_amount))
+        self.option2.setText('Win {} with {}% probabilities or {} with {}% probabilities '.format(self.lottery_1, self.proba, self.lottery_2,str(x5)))
         self.update()
 
 
     def clickedOption1(self):
-
-
-
         self.toggleOption1()
         if self.option1Clicked:
             self.option1.setStyleSheet(self.buttonStyleOn)
@@ -222,9 +240,6 @@ class MyWindow(QMainWindow):
             self.option1.setStyleSheet(self.buttonStyleOff)
 
     def clickedOption2(self):
-
-        if self.questionCount <= 11:
-            self.questionCount += 1
         self.toggleOption2()
         if self.option2Clicked:
             self.option2.setStyleSheet(self.buttonStyleOn)
@@ -239,7 +254,7 @@ class MyWindow(QMainWindow):
         self.option1.adjustSize()
         self.option2.adjustSize()
 
-    def createLotteryChoices(self):
+    def createLotteryChoices(self): # shouldnt be called anymore
         choice1 = (65, 120, 90, 10)
         choice2 = (65, 120, 10, 10)
         choice3 = (65, 120, 50, 10)
@@ -254,7 +269,7 @@ class MyWindow(QMainWindow):
         choice12 = (20.9, 120, 7, 10)
         choice13 = (42.9, 120, 33, 10)
 
-        self.sentence_string = "Do you prefer to win for sure <b>{} </b> or play the lottery and win <b>{} </b> with <b>{}% chances </b> or <b>{} </b> if you lose the lottery"
+        self.sentence_string = "Do you prefer to win for sure <b>{} </b> or play the lottery and win <b>{} </b> with <b>{}% probabilities </b> or <b>{} </b> if you lose the lottery"
         self.lottery = [choice1, choice2, choice3, choice4, choice5, choice6, choice6, choice7, choice8, choice8, choice9, choice10, choice11, choice12, choice13]
 
 
@@ -269,3 +284,7 @@ def window():
 
 
 window()
+
+
+# @TODO
+# check que c'est correct avec les tables
