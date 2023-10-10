@@ -3,10 +3,10 @@ import pandas as pd
 from backend.I_spline_M_spline import I_spline
 import warnings
 import scipy.optimize as opt
-import csv
+import os
 
 
-
+##### CONSTANTS
 order = 3
 helper = np.arange(0.01, 1, 0.01)
 chosen_xi = [.1, .9]
@@ -15,23 +15,36 @@ y = 10
 m = 5
 
 class Model:
+    """
+    The Model class is responsible for the model part of the project.
+
+    Attributes:
+        - file_name: name of the file
+        - iteration: number of iterations occured. One iteration is one choice.
+        - sim_answers: dataframe containing calculated results such as p_x, z, w_p, s, and s_tilde
+        - epsilon: biggest gap between the upper- and lowerbound
+        - A1: matrix
+        - lower_bound: value of the lower bound
+        - upper_bound: value of the upper bound
+        - D: gap between lower and upper bound
+        - bound_list: list of bounds
+    """
     def __init__(self):
+        """
+        Initiates the attributes
+        """
         # questioning ---------------------------------------------------------------
-        self.verbose = False
+        self.file_name = None
         self.iteration = 0
 
         # initialization for questions
         colnames = ['p_x', 'z', 'w_p', 's', 's_tilde']
         self.sim_answers = pd.DataFrame(columns=colnames) # better to work with several iteration
-        if self.verbose:
-            print("sim_answers", self.sim_answers)
 
         self.epsilon = np.inf
         # initialization for LPs
         self.A1 = np.zeros((m, m))
         np.fill_diagonal(self.A1, -1)
-        if self.verbose:
-            print("A1", self.A1)
 
         self.lower_bound = I_spline(x=helper, k=order, interior_knots=chosen_xi, individual=True)[m-1]
         self.upper_bound = I_spline(x=helper, k=order, interior_knots=chosen_xi, individual=True)[0]
@@ -41,22 +54,41 @@ class Model:
         self.z = -1 # sentinel value
         self.p_w = -1 # sentinel value
 
-    def get_epsilon(self):
+    def getEpsilon(self):
         return self.epsilon
 
-    def get_boundlist(self):
+    def getBoundlist(self):
         return self.bound_list
 
-    def get_sim_answers(self):
+    def getSimAnswers(self):
         return self.sim_answers
 
-    def save_sim_answers(self):
-        with open('studentsq.csv', 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerows(self.sim_answers)
+    def setDirectoryFileName(self, directory, fileName):
+        """
+        Sets the directory and file name
+        :param directory: directory in which to save the results in
+        :param fileName: name of the file
+        """
+        self.directory = directory
+        self.file_name = str(fileName) + ".csv"
 
+    def saveSimAnswers(self):
+        """
+        Saves the results in sim_answers to a .csv file
+        :return:
+        """
+        self.fileNameToSave = os.path.join(self.directory,self.file_name)
+        self.sim_answers.to_csv(self.fileNameToSave, index=False)
 
     def calculate(self, answer):
+        """
+        Calculates the next values for the lottery after the user's answer
+        :param
+            - answer: the user's answer
+        :return:
+            - self.z: sure value
+            - self.p_w: weighted probability
+        """
 
         # find next p
         candidates = self.D == np.max(self.D)
@@ -80,31 +112,16 @@ class Model:
         self.sim_answers.loc[self.iteration, "s"] = answer
         self.sim_answers.loc[self.iteration, "s_tilde"] = 1 if self.sim_answers.loc[self.iteration, "s"] else -1
 
-        if self.verbose:
-            print("sim answers\n", self.sim_answers)
-            print(self.sim_answers["p_x"])
-            print(self.sim_answers["s_tilde"])
-
-
         # prepare parameters for LPs
         A2 = self.sim_answers["s_tilde"].values * I_spline(x = self.sim_answers["p_x"], k=order, interior_knots=chosen_xi, individual=True) # question part
         A = np.column_stack((self.A1, A2)).T
         b = np.concatenate((np.zeros(m), self.sim_answers["s_tilde"].values * self.sim_answers["w_p"].values))
-        if self.verbose:
-            print("A2", A2) # the signs are the opposite
-            print("A", A)
-            print("A", A.ndim)
-            print("b", b)
-
 
         for i, local_x in enumerate(helper):
 
             c = np.array(
                 I_spline(x = local_x, k = 3, interior_knots = chosen_xi, individual = True)
             )
-
-            if self.verbose:
-                print("c", c)
 
             min_problem = opt.linprog(
                 c = c,
@@ -125,11 +142,6 @@ class Model:
             self.upper_bound[i] = np.dot(max_problem.x, c)
 
 
-        # Print or use the lower_bound array as needed
-        if self.verbose:
-            print("lower_bound", self.lower_bound)
-            print("upper_bound", self.upper_bound)
-
         # calculate max difference based on updated bounds
         self.D = self.upper_bound - self.lower_bound
         self.epsilon = np.max(self.D)
@@ -146,13 +158,13 @@ class Model:
 
 
 # @TODO
-# save as .csv with no overwrite and save after every answer
+# save as .csv with no overwrite and save after every answer # check
 # sim_answers
 
 # ask the user for a number and this  number is saved for the file
 # or choose unique identifier
 
-# ideally query for location but can be turned off and create results folder i the smae location.
+# ideally query for location but can be turned off and create results folder i the same location.
 
 
-# write the instructions on how to use the code --> README
+# write the instructions on how to use the code --> README # how ot use, how to change
