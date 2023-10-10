@@ -1,3 +1,7 @@
+# Author: Mathieu Leng
+# Date: 2023
+# version 1.0
+
 import numpy as np
 import pandas as pd
 from backend.I_spline_M_spline import I_spline
@@ -152,19 +156,3 @@ class Model:
         self.iteration += 1
 
         return self.z, self.p_w
-
-
-
-
-
-# @TODO
-# save as .csv with no overwrite and save after every answer # check
-# sim_answers
-
-# ask the user for a number and this  number is saved for the file
-# or choose unique identifier
-
-# ideally query for location but can be turned off and create results folder i the same location.
-
-
-# write the instructions on how to use the code --> README # how ot use, how to change

@@ -1,3 +1,7 @@
+# Author: Mathieu Leng
+# Date: 2023
+# version 1.0
+
 import sys
 import os
 from backend.model_interface import Model
@@ -379,10 +383,3 @@ def window():
 
 
 window()
-
-
-# @TODO
-# check que c'est correct avec les tables
-
-# overwrites work --> shoudlnt
-# looks like the last value is not stored because ask one extra question but it is not saved
