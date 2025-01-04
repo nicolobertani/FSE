@@ -1,13 +1,26 @@
-# Author: Mathieu Leng
-# Date: 2023
-# version 1.0
-
 import sys
 import os
+import re
+
+# define the path to the folder
 file_path = os.path.abspath(__file__)
 folder_path = os.path.dirname(file_path)
 parent_folder_path = os.path.dirname(folder_path)
 sys.path.insert(0, parent_folder_path) 
+
+# define name of the file
+experimental_design = 'FSE'
+results_folder = os.path.join(parent_folder_path, 'results')
+if os.path.exists(results_folder) and os.path.isdir(results_folder):
+    result_files = os.listdir(results_folder)
+else:
+    raise FileNotFoundError("Results folder does not exist.")
+filtered_files = [f for f in result_files if re.match(r'^FSE_\d{4}\.csv$', f)]
+numeric_parts = [re.search(r'\d{4}', f).group() for f in filtered_files]
+max_numeric_part = max(map(int, numeric_parts)) if numeric_parts else 0
+new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}.csv"
+
+# import the necessary libraries
 from backend.model_interface import Model
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLineEdit, QMessageBox, QLabel, QFileDialog, QHBoxLayout
 from PyQt5 import QtWidgets
