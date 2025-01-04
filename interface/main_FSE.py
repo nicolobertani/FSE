@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+import random
 
 # define the path to the folder
 file_path = os.path.abspath(__file__)
@@ -185,15 +186,19 @@ class MyWindow(QMainWindow):
         """
         Updates the different texts
         """
-        self.sentence.setText(self.sentence_string)
-        self.option1.setText(self.sentence_lottery.format(
+        lottery_text = self.sentence_lottery.format(
             f"{self.amount_currency}{shared_info["x"]}",
             f"{self.proba * 100:.0f}%",
             f"{self.amount_currency}{shared_info["y"]}"
-        ))
-        self.option2.setText(self.sentence_sure.format(
+        )
+        sure_amount_text = self.sentence_sure.format(
             f"{self.amount_currency}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
-        ))
+        )
+        sentences = [lottery_text, sure_amount_text]
+        self.question_order = random.sample([0, 1], 2)
+        self.sentence.setText(self.sentence_string)
+        self.option1.setText(sentences[self.question_order[0]])
+        self.option2.setText(sentences[self.question_order[1]])
         self.updateTextButtons()
 
 
@@ -254,11 +259,13 @@ class MyWindow(QMainWindow):
         """
         Handles the states when the choice has been confirmed
         """
-        if self.option2Clicked or self.option1Clicked:
+        if self.option2Clicked or self.option1Clicked: # don't do anything if no option has been clicked
             if self.option1Clicked:
-                self.sure_amount, self.proba = self.model.calculate(1)
+                self.sure_amount, self.proba = self.model.calculate(self.question_order[0])
+                print(self.question_order[0])
             else:
-                self.sure_amount, self.proba = self.model.calculate(0)
+                self.sure_amount, self.proba = self.model.calculate(self.question_order[1])
+                print(self.question_order[1])
             self.updateText()
             self.updateTextButtons()
             self.resetButtons()

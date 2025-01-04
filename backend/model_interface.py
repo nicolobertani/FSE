@@ -150,7 +150,6 @@ class FSE:
 
         # store bounds
         self.bound_list.append(np.vstack((self.lower_bound, self.upper_bound)))
-        print(self.D)
 
         # update iteration
         self.iteration += 1
