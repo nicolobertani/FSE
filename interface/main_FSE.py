@@ -28,108 +28,6 @@ from PyQt5.QtGui import QFont
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 
-class CodeEntryWindow(QMainWindow):
-    """
-    This first window is responsible for asking a 4-digit code to the user. The code is checked for two things:
-     - the code is really made out of 4 digit
-     - the code has not been used yet in the same directory.
-     The researcher can choose if the user can choose the directory or if the .csv file is saved in the default
-        directory (same as the program)
-    """
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initiates the different components of the first window
-        """
-        self.askDir = False # change if prefer to have default directory
-        self.directory = os.getcwd()
-        self.initWindow()
-        self.initLabel()
-
-    def initWindow(self):
-        """
-        Initiates the components of the window
-        """
-        self.setWindowTitle('Code Entry')
-        self.setGeometry(100, 100, 400, 200)
-        self.font = QFont()
-        self.font.setPointSize(25)
-
-    def initButton(self):
-        """
-        Initiates the components of the button
-        """
-        self.button = QPushButton('Enter Code', self)
-        self.button.setGeometry(150, 80, 100, 30)
-        self.buttonStyle = """
-            QPushButton {
-            background-color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 10px;
-        }
-        """
-        fontButtons = QFont()
-        fontButtons.setPointSize(15)
-        self.button.setFont(fontButtons)
-        self.button.setStyleSheet(self.buttonStyle)
-        self.button.clicked.connect(self.checkCode)
-
-    def initLabel(self):
-        """
-        Initiates the components of the box in which you can write the 4-digit code
-        """
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        self.label = QLabel('Please enter a 4-digit code:', self)
-        self.label.setFont(self.font)
-        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignHCenter)  # Center the label horizontally
-        self.input_field = QLineEdit(self)
-        self.input_field.setFont(self.font)
-        layout.addWidget(self.input_field, alignment=Qt.AlignmentFlag.AlignHCenter)  # Center the input field horizontally
-        self.initButton()
-        layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignHCenter)  # Center the button horizontally
-
-    def checkFileExists(self):
-        """
-        Checks that the file does not already exist in the chosen directory
-        :return:
-            boolean indicating if the file already exists or not
-        """
-        return os.path.exists(os.path.join(self.directory, self.code + ".csv"))
-
-    def checkCode(self):
-        """
-        Checks that the code is correct:
-            - correct format
-            - does not exist already
-        """
-        self.code = self.input_field.text()
-        if len(self.code) == 4 and self.code.isdigit():
-            if self.askDir:
-                self.directory = QFileDialog.getExistingDirectory(self, "Choose Directory", os.path.expanduser("~"))
-
-            if self.checkFileExists():
-                QMessageBox.warning(self, 'Invalid Code', 'This code already exists')
-
-            else:
-                self.close()
-                self.openSecondWindow()
-        else:
-            QMessageBox.warning(self, 'Invalid Code', 'Invalid code format. Please enter a 4-digit numeric code.')
-
-    def openSecondWindow(self):
-        """
-        Opens the second window
-        """
-        self.main_window = MyWindow()
-        self.main_window.setCodeDirectory(self.code, self.directory)
-        self.main_window.show()
-
 
 class MyWindow(QMainWindow):
     """
@@ -356,14 +254,12 @@ class MyWindow(QMainWindow):
         print(self.model.getSimAnswers())
 
 
-
-
-def window():
+def __main__():
     app = QApplication(sys.argv) # always start with
-    win = CodeEntryWindow()
+    win = MyWindow()
+    win.setCodeDirectory(new_file_name, results_folder)
+    # win.show()
     win.showFullScreen()
     sys.exit(app.exec_())
 
-
-
-window()
+__main__()
