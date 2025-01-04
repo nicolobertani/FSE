@@ -99,26 +99,38 @@ class MyWindow(QMainWindow):
         """
         Creates the different buttons
         """
+
+        # style of the buttons
         self.buttonStyleOff = """
             QPushButton {
             background-color: white;
             border: none;
             border-radius: 10px;
-            padding: 20px; /* Increased padding for larger buttons */
+            padding: 30px; /* Increased padding for larger buttons */
         }
         """
-
         self.buttonStyleOn = """
             QPushButton {
             background-color: grey;
             border: none;
             border-radius: 10px;
-            padding: 20px; /* Increased padding for larger buttons */
+            padding: 30px; /* Increased padding for larger buttons */
         }
         """
+        self.buttonConfirm = """
+            QPushButton {
+            background-color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 50px; /* Increased padding for larger buttons */
+        }
+        """
+
+        # font of all buttons
         fontButtons = QFont()
         fontButtons.setPointSize(18)  # Increased font size
 
+        # Create the buttons for the options
         self.option1 = QtWidgets.QPushButton(self)
         self.option1.clicked.connect(self.clickedOption1)
         self.option1Clicked = False
@@ -128,14 +140,17 @@ class MyWindow(QMainWindow):
         self.option2Clicked = False
         self.option2.setFont(fontButtons)
 
+        # Apply style
         self.option1.setStyleSheet(self.buttonStyleOff)
         self.option2.setStyleSheet(self.buttonStyleOff)
 
+        # confirm button
         self.confirm = QtWidgets.QPushButton(self)
         self.confirm.clicked.connect(self.confirmed)
-        self.confirm.setText("Confirm choice")
-        self.confirm.setStyleSheet(self.buttonStyleOff)
+        self.confirm.setText("I confirm my choice.")
+        self.confirm.setStyleSheet(self.buttonConfirm)
         self.confirm.setFont(fontButtons)
+
 
     def setCodeDirectory(self, code, directory):
         """
