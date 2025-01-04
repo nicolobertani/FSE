@@ -21,7 +21,8 @@ max_numeric_part = max(map(int, numeric_parts)) if numeric_parts else 0
 new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}"
 
 # import the necessary libraries
-from backend.model_interface import Model
+from backend.model_interface import FSE
+from backend.shared_info import shared_info
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLineEdit, QMessageBox, QLabel, QFileDialog, QHBoxLayout
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QFont
@@ -48,27 +49,34 @@ class MyWindow(QMainWindow):
         """
         Initializes the main window
         """
+
+        # Initialize the main window
         super(MyWindow, self).__init__()
         self.xpos = 0
         self.ypos = 0
-        self.width = 600
+        self.width = 1200
         self.height = 600
-
-        # initial values, may be changed for other applications
-        self.sure_amount = 65.0
-        self.lottery_1 = 10
-        self.lottery_2 = 120
-        self.proba = 90.0
-
-        self.amount_currency = "£"  # Define the currency here
-
-        self.code = None
-        self.directory = None
         self.setGeometry(self.xpos, self.ypos, self.width, self.height)
         self.setWindowTitle("Lottery Check")
-        self.model = Model()
-        self.sentence_string = "Do you prefer to win for sure <b>{} </b> or play the lottery and win <b>{} </b> with <b>{}% probabilities </b> or <b>{} </b> if you lose the lottery"
+
+        # Set question text
+        self.amount_currency = "£"  # Define the currency here
+        self.sentence_string = "Which of the following options do you prefer?"
+        self.sentence_sure = "Receiving {} for sure."
+        self.sentence_lottery = "A lottery where you can either receive {} with {} probability, or receive {} otherwise."
+
+        # Set empty attributes
+        self.code = None
+        self.directory = None
+
+        # Initialize the model and the first question
+        self.model = FSE()
+        self.sure_amount = self.model.getSimAnswers().iloc[-1]['z']
+        self.proba = self.model.getSimAnswers().iloc[-1]['p_x']
+        
+        # Initialize the UI
         self.initUI()
+        
 
     def initUI(self):
         """
@@ -95,6 +103,7 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.widget)
         self.updateText()
 
+    
     def createButtons(self):
         """
         Creates the different buttons
@@ -106,7 +115,7 @@ class MyWindow(QMainWindow):
             background-color: white;
             border: none;
             border-radius: 10px;
-            padding: 30px; /* Increased padding for larger buttons */
+            padding: 60px; /* Increased padding for larger buttons */
         }
         """
         self.buttonStyleOn = """
@@ -114,7 +123,7 @@ class MyWindow(QMainWindow):
             background-color: grey;
             border: none;
             border-radius: 10px;
-            padding: 30px; /* Increased padding for larger buttons */
+            padding: 60px; /* Increased padding for larger buttons */
         }
         """
         self.buttonConfirm = """
@@ -122,7 +131,7 @@ class MyWindow(QMainWindow):
             background-color: white;
             border: none;
             border-radius: 10px;
-            padding: 50px; /* Increased padding for larger buttons */
+            padding: 30px; /* Increased padding for larger buttons */
         }
         """
 
@@ -162,6 +171,7 @@ class MyWindow(QMainWindow):
         self.directory = directory
         self.model.setDirectoryFileName(directory, code)
 
+    
     def updateTextButtons(self):
         """
         Updates the text and the buttons
@@ -170,20 +180,22 @@ class MyWindow(QMainWindow):
         self.option1.adjustSize()
         self.option2.adjustSize()
 
+    
     def updateText(self):
         """
         Updates the different texts
         """
-        x5 = 100 - int(self.proba)
-        self.sentence.setText(self.sentence_string.format(
-            f"{self.amount_currency}{self.sure_amount}", 
-            f"{self.amount_currency}{self.lottery_1}", 
-            self.proba, 
-            f"{self.amount_currency}{self.lottery_2}"
+        self.sentence.setText(self.sentence_string)
+        self.option1.setText(self.sentence_lottery.format(
+            f"{self.amount_currency}{shared_info["x"]}",
+            f"{self.proba * 100:.0f}%",
+            f"{self.amount_currency}{shared_info["y"]}"
         ))
-        self.option1.setText(f"Win <b>{self.amount_currency}{self.sure_amount}</b>")
-        self.option2.setText(f"Win <b>{self.amount_currency}{self.lottery_1}</b> with <b>{self.proba}%</b> probabilities or <b>{self.amount_currency}{self.lottery_2}</b> with <b>{x5}%</b> probabilities")
+        self.option2.setText(self.sentence_sure.format(
+            f"{self.amount_currency}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
+        ))
         self.updateTextButtons()
+
 
     def toggleOption1(self):
         """
@@ -191,11 +203,13 @@ class MyWindow(QMainWindow):
         """
         self.option1Clicked = (self.option1Clicked + 1) % 2
 
+
     def toggleOption2(self):
         """
         Toggles the state of the button for the 2nd option
         """
         self.option2Clicked = (self.option2Clicked + 1) % 2
+
 
     def resetButtons(self):
         """
@@ -206,6 +220,7 @@ class MyWindow(QMainWindow):
         self.option2Clicked = False
         self.option1.setStyleSheet(self.buttonStyleOff)
         self.option2.setStyleSheet(self.buttonStyleOff)
+
 
     def clickedOption1(self):
         """
@@ -220,6 +235,7 @@ class MyWindow(QMainWindow):
         else: # if was already clicked before
             self.option1.setStyleSheet(self.buttonStyleOff)
 
+
     def clickedOption2(self):
         """
         Handles the states of the buttons when button 2 is clicked on
@@ -233,6 +249,7 @@ class MyWindow(QMainWindow):
         else: # if was already clicked before
             self.option2.setStyleSheet(self.buttonStyleOff)
 
+
     def confirmed(self):
         """
         Handles the states when the choice has been confirmed
@@ -242,14 +259,13 @@ class MyWindow(QMainWindow):
                 self.sure_amount, self.proba = self.model.calculate(1)
             else:
                 self.sure_amount, self.proba = self.model.calculate(0)
-            self.sure_amount = round(float(self.sure_amount),2)
-            self.proba = round(float(self.proba) * 100,0)
             self.updateText()
             self.updateTextButtons()
             self.resetButtons()
             self.model.saveSimAnswers()
             if not self.model.getEpsilon() > 0.1:
                 self.finished()
+
 
     def finished(self):
         """
@@ -273,8 +289,8 @@ def __main__():
     app = QApplication(sys.argv) # always start with
     win = MyWindow()
     win.setCodeDirectory(new_file_name, results_folder)
-    # win.show()
-    win.showFullScreen()
+    win.show()
+    # win.showFullScreen()
     sys.exit(app.exec_())
 
 __main__()
