@@ -4,6 +4,10 @@
 
 import sys
 import os
+file_path = os.path.abspath(__file__)
+folder_path = os.path.dirname(file_path)
+parent_folder_path = os.path.dirname(folder_path)
+sys.path.insert(0, parent_folder_path) 
 from backend.model_interface import Model
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLineEdit, QMessageBox, QLabel, QFileDialog
 from PyQt5.QtChart import QChart, QChartView, QPieSeries
@@ -135,7 +139,6 @@ class MyWindow(QMainWindow):
         Initializes the main window
         """
         super(MyWindow, self).__init__()
-        sys.path.insert(0, '/Users/mathieuleng/PycharmProjects/FSE/backend') # needs no be changed on other machines, needed for the import of packages
         self.xpos = 0
         self.ypos = 0
         self.width = 600
