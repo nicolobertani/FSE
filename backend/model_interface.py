@@ -18,7 +18,7 @@ import scipy.optimize as opt
 from I_spline_M_spline import I_spline
 from shared_info import shared_info
 
-class Model:
+class FSE:
     """
     The Model class is responsible for the model part of the project.
 
@@ -36,15 +36,19 @@ class Model:
     
     ##### CONSTANTS
     order = 3
-    helper = np.arange(0.01, 1, 0.01)
     chosen_xi = [.1, .9]
     m = 5
     
-    def __init__(self, starting_p_x = .9, starting_z = (shared_info["x"] + shared_info["y"]) / 2):
+    def __init__(self, 
+                 starting_p_x = .9, 
+                 starting_z = (shared_info["x"] + shared_info["y"]) / 2,
+                 set_x = np.arange(0.01, 1, 0.01)
+                 ):
         """
         Initiates the attributes
         """
         # questioning ---------------------------------------------------------------
+        self.set_x = set_x
         self.file_name = None
         self.iteration = 0
 
@@ -64,8 +68,8 @@ class Model:
         self.A1 = np.zeros((self.m, self.m))
         np.fill_diagonal(self.A1, -1)
 
-        self.lower_bound = I_spline(x=self.helper, k=self.order, interior_knots=self.chosen_xi, individual=True)[self.m-1]
-        self.upper_bound = I_spline(x=self.helper, k=self.order, interior_knots=self.chosen_xi, individual=True)[0]
+        self.lower_bound = I_spline(x=self.set_x, k=FSE.order, interior_knots=self.chosen_xi, individual=True)[self.m-1]
+        self.upper_bound = I_spline(x=self.set_x, k=FSE.order, interior_knots=self.chosen_xi, individual=True)[0]
         self.D = self.upper_bound - self.lower_bound
         # create storage for bounds
         self.bound_list = [np.vstack((self.lower_bound, self.upper_bound))]
@@ -111,12 +115,12 @@ class Model:
         self.sim_answers.loc[self.iteration, "s_tilde"] = 1 if self.sim_answers.loc[self.iteration, "s"] else -1
 
         # prepare parameters for LPs
-        A2 = self.sim_answers["s_tilde"].values * I_spline(x = self.sim_answers["p_x"], k=self.order, interior_knots=self.chosen_xi, individual=True) # question part
+        A2 = self.sim_answers["s_tilde"].values * I_spline(x = self.sim_answers["p_x"], k=FSE.order, interior_knots=self.chosen_xi, individual=True) # question part
         A = np.column_stack((self.A1, A2)).T
         b = np.concatenate((np.zeros(self.m), self.sim_answers["s_tilde"].values * self.sim_answers["w_p"].values))
 
         # update bounds
-        for i, local_x in enumerate(self.helper):
+        for i, local_x in enumerate(self.set_x):
 
             c = np.array(
                 I_spline(x = local_x, k = 3, interior_knots = self.chosen_xi, individual = True)
@@ -155,14 +159,14 @@ class Model:
         # find next p
         candidates = self.D == np.max(self.D)
         if np.sum(candidates) == 1:  # if one point exists
-            self.sim_answers.loc[self.iteration, "p_x"] = self.helper[candidates]
+            self.sim_answers.loc[self.iteration, "p_x"] = self.set_x[candidates]
         else:  # if multiple points exist
             warnings.warn('Warning: multiple optimal bisection points')
-            abs_distance_from_middle = np.abs(self.helper[candidates] - 0.5)
-            self.sim_answers.loc[self.iteration, "p_x"] = np.array(self.helper[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][0]
+            abs_distance_from_middle = np.abs(self.set_x[candidates] - 0.5)
+            self.sim_answers.loc[self.iteration, "p_x"] = np.array(self.set_x[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][0]
 
         # compute next z and w.p
-        w_p_t = (self.upper_bound + self.lower_bound)[self.helper == self.sim_answers.loc[self.iteration, "p_x"]] / 2 # p_w wiing lottery
+        w_p_t = (self.upper_bound + self.lower_bound)[self.set_x == self.sim_answers.loc[self.iteration, "p_x"]] / 2 # p_w wiing lottery
         self.sim_answers.loc[self.iteration, "z"] = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"] # z is sure amount
         self.sim_answers.loc[self.iteration, "w_p"] = w_p_t
 
@@ -171,12 +175,3 @@ class Model:
         self.p_x = self.sim_answers.loc[self.iteration, "p_x"]
 
         return self.z, self.p_x
-
-
-model = Model()
-model.calculate(0)
-model.calculate(0)
-model.calculate(0)
-model.calculate(0)
-model.calculate(0)
-print(model.getSimAnswers())
