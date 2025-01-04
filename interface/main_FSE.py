@@ -15,10 +15,10 @@ if os.path.exists(results_folder) and os.path.isdir(results_folder):
     result_files = os.listdir(results_folder)
 else:
     raise FileNotFoundError("Results folder does not exist.")
-filtered_files = [f for f in result_files if re.match(r'^FSE_\d{4}\.csv$', f)]
+filtered_files = [f for f in result_files if re.match(rf'^{experimental_design}_\d{{4}}\.csv$', f)]
 numeric_parts = [re.search(r'\d{4}', f).group() for f in filtered_files]
 max_numeric_part = max(map(int, numeric_parts)) if numeric_parts else 0
-new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}.csv"
+new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}"
 
 # import the necessary libraries
 from backend.model_interface import Model
