@@ -21,14 +21,13 @@ numeric_parts = [re.search(r'\d{4}', f).group() for f in filtered_files]
 max_numeric_part = max(map(int, numeric_parts)) if numeric_parts else 0
 new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}"
 
-# import the necessary libraries
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+from PyQt5.QtGui import QFont
+from PyQt5 import QtCore, QtWidgets
+# from PyQt5.QtCore import Qt
 from backend.model_interface import FSE
 from backend.shared_info import shared_info
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLineEdit, QMessageBox, QLabel, QFileDialog, QHBoxLayout
-from PyQt5 import QtWidgets
-from PyQt5.QtGui import QFont
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from backend.styling import buttonStyleOff, buttonStyleOn, buttonProceed  # Import styles
 
 
 class MyWindow(QMainWindow):
@@ -47,38 +46,10 @@ class MyWindow(QMainWindow):
             -sentence_string: the sentence showed above
     """
 
-    # style of the buttons
-    buttonStyleOff = """
-        QPushButton {
-        background-color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 60px; /* Increased padding for larger buttons */
-    }
-    """
-    buttonStyleOn = """
-        QPushButton {
-        background-color: grey;
-        border: none;
-        border-radius: 10px;
-        padding: 60px; /* Increased padding for larger buttons */
-    }
-    """
-    buttonProceed = """
-        QPushButton {
-        background-color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 30px; /* Increased padding for larger buttons */
-    }
-    """
-
     def __init__(self):
         """
         Initializes the main window
         """
-
-        # Initialize the main window
         super(MyWindow, self).__init__()
         self.xpos = 0
         self.ypos = 0
@@ -142,7 +113,7 @@ class MyWindow(QMainWindow):
         # Create the proceed button
         self.proceed_button = QtWidgets.QPushButton("Proceed")
         self.proceed_button.setFont(font)
-        self.proceed_button.setStyleSheet(self.buttonProceed)  # Apply the buttonProceed style
+        self.proceed_button.setStyleSheet(buttonProceed)  # Apply the buttonProceed style
         self.proceed_button.clicked.connect(self.setQuestionScreen)
         
         # Set up the layout for the welcome screen
@@ -181,12 +152,10 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.widget)
         self.updateText()
 
-    
     def createButtons(self):
         """
         Creates the different buttons
         """
-
         # font of all buttons
         fontButtons = QFont()
         fontButtons.setPointSize(18)  # Increased font size
@@ -202,16 +171,15 @@ class MyWindow(QMainWindow):
         self.option2.setFont(fontButtons)
 
         # Apply style
-        self.option1.setStyleSheet(self.buttonStyleOff)
-        self.option2.setStyleSheet(self.buttonStyleOff)
+        self.option1.setStyleSheet(buttonStyleOff)
+        self.option2.setStyleSheet(buttonStyleOff)
 
         # confirm button
         self.confirm = QtWidgets.QPushButton(self)
         self.confirm.clicked.connect(self.confirmed)
         self.confirm.setText("I confirm my choice.")
-        self.confirm.setStyleSheet(self.buttonProceed)
+        self.confirm.setStyleSheet(buttonProceed)
         self.confirm.setFont(fontButtons)
-
 
     def setCodeDirectory(self, code, directory):
         """
@@ -223,7 +191,6 @@ class MyWindow(QMainWindow):
         self.directory = directory
         self.model.setDirectoryFileName(directory, code)
 
-    
     def updateTextButtons(self):
         """
         Updates the text and the buttons
@@ -232,7 +199,6 @@ class MyWindow(QMainWindow):
         self.option1.adjustSize()
         self.option2.adjustSize()
 
-    
     def updateText(self):
         """
         Updates the different texts
@@ -241,9 +207,9 @@ class MyWindow(QMainWindow):
             f"{self.model.getSimAnswers().shape[0]:.0f}"
         ))
         lottery_text = self.sentence_lottery.format(
-            f"{self.amount_currency}{shared_info["x"]}",
+            f"{self.amount_currency}{shared_info['x']}",
             f"{self.proba * 100:.0f}%",
-            f"{self.amount_currency}{shared_info["y"]}"
+            f"{self.amount_currency}{shared_info['y']}"
         )
         sure_amount_text = self.sentence_sure.format(
             f"{self.amount_currency}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
@@ -254,20 +220,17 @@ class MyWindow(QMainWindow):
         self.option2.setText(sentences[self.question_order[1]])
         self.updateTextButtons()
 
-
     def toggleOption1(self):
         """
         Toggles the state of the button for the 1st option
         """
         self.option1Clicked = (self.option1Clicked + 1) % 2
 
-
     def toggleOption2(self):
         """
         Toggles the state of the button for the 2nd option
         """
         self.option2Clicked = (self.option2Clicked + 1) % 2
-
 
     def resetButtons(self):
         """
@@ -276,9 +239,8 @@ class MyWindow(QMainWindow):
         """
         self.option1Clicked = False
         self.option2Clicked = False
-        self.option1.setStyleSheet(self.buttonStyleOff)
-        self.option2.setStyleSheet(self.buttonStyleOff)
-
+        self.option1.setStyleSheet(buttonStyleOff)
+        self.option2.setStyleSheet(buttonStyleOff)
 
     def clickedOption1(self):
         """
@@ -286,13 +248,12 @@ class MyWindow(QMainWindow):
         """
         self.toggleOption1()
         if self.option1Clicked: # if should be clicked now
-            self.option1.setStyleSheet(self.buttonStyleOn)
+            self.option1.setStyleSheet(buttonStyleOn)
             if self.option2Clicked:
                 self.toggleOption2()
-                self.option2.setStyleSheet(self.buttonStyleOff)
+                self.option2.setStyleSheet(buttonStyleOff)
         else: # if was already clicked before
-            self.option1.setStyleSheet(self.buttonStyleOff)
-
+            self.option1.setStyleSheet(buttonStyleOff)
 
     def clickedOption2(self):
         """
@@ -300,13 +261,12 @@ class MyWindow(QMainWindow):
         """
         self.toggleOption2()
         if self.option2Clicked: # if should be clicked now
-            self.option2.setStyleSheet(self.buttonStyleOn)
+            self.option2.setStyleSheet(buttonStyleOn)
             if self.option1Clicked:
                 self.toggleOption1()
-                self.option1.setStyleSheet(self.buttonStyleOff)
+                self.option1.setStyleSheet(buttonStyleOff)
         else: # if was already clicked before
-            self.option2.setStyleSheet(self.buttonStyleOff)
-
+            self.option2.setStyleSheet(buttonStyleOff)
 
     def confirmed(self):
         """
@@ -324,7 +284,6 @@ class MyWindow(QMainWindow):
             if not self.model.getEpsilon() > 0.1:
                 self.finished()
 
-
     def finished(self):
         """
         Cleans the main window and shows end message
@@ -341,7 +300,6 @@ class MyWindow(QMainWindow):
         messageWidget.setLayout(messageLayout)
         self.setCentralWidget(messageWidget)
         print(self.model.getSimAnswers())
-
 
 def __main__():
     app = QApplication(sys.argv) # always start with
