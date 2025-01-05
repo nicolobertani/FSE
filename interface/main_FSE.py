@@ -62,7 +62,7 @@ class MyWindow(QMainWindow):
 
         # Set question text
         self.amount_currency = "£"  # Define the currency here
-        self.sentence_string = "Which of the following options do you prefer?"
+        self.sentence_string = "Question {}:\nWhich of the following options do you prefer?"
         self.sentence_sure = "Receiving {} for sure."
         self.sentence_lottery = "A lottery where you can either receive {} with {} probability, or receive {} otherwise."
 
@@ -88,6 +88,7 @@ class MyWindow(QMainWindow):
         # Set the new font on the label
         self.sentence = QtWidgets.QLabel()
         self.sentence.setFont(font)
+        
         self.createButtons()
 
         self.widget = QWidget()
@@ -186,6 +187,9 @@ class MyWindow(QMainWindow):
         """
         Updates the different texts
         """
+        self.sentence.setText(self.sentence_string.format(
+            f"{self.model.getSimAnswers().shape[0]:.0f}"
+        ))
         lottery_text = self.sentence_lottery.format(
             f"{self.amount_currency}{shared_info["x"]}",
             f"{self.proba * 100:.0f}%",
@@ -196,7 +200,6 @@ class MyWindow(QMainWindow):
         )
         sentences = [lottery_text, sure_amount_text]
         self.question_order = random.sample([0, 1], 2)
-        self.sentence.setText(self.sentence_string)
         self.option1.setText(sentences[self.question_order[0]])
         self.option2.setText(sentences[self.question_order[1]])
         self.updateTextButtons()
