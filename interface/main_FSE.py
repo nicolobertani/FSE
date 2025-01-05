@@ -46,6 +46,33 @@ class MyWindow(QMainWindow):
             -model: the model used to calculate the results
             -sentence_string: the sentence showed above
     """
+
+    # style of the buttons
+    buttonStyleOff = """
+        QPushButton {
+        background-color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 60px; /* Increased padding for larger buttons */
+    }
+    """
+    buttonStyleOn = """
+        QPushButton {
+        background-color: grey;
+        border: none;
+        border-radius: 10px;
+        padding: 60px; /* Increased padding for larger buttons */
+    }
+    """
+    buttonProceed = """
+        QPushButton {
+        background-color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 30px; /* Increased padding for larger buttons */
+    }
+    """
+
     def __init__(self):
         """
         Initializes the main window
@@ -83,6 +110,39 @@ class MyWindow(QMainWindow):
         """
         Initializes all the UI elements
         """
+        self.setWelcomeScreen()
+
+    def setWelcomeScreen(self):
+        """
+        Sets up the welcome screen
+        """
+        font = QFont()
+        font.setPointSize(25)
+        
+        # Create the welcome label
+        self.welcome_label = QtWidgets.QLabel("Welcome to the Lottery Experiment!")
+        self.welcome_label.setFont(font)
+        self.welcome_label.setAlignment(QtCore.Qt.AlignCenter)
+        
+        # Create the proceed button
+        self.proceed_button = QtWidgets.QPushButton("Proceed")
+        self.proceed_button.setFont(font)
+        self.proceed_button.setStyleSheet(self.buttonProceed)  # Apply the buttonProceed style
+        self.proceed_button.clicked.connect(self.setQuestionScreen)
+        
+        # Set up the layout for the welcome screen
+        self.welcome_widget = QWidget()
+        self.welcome_layout = QVBoxLayout()
+        self.welcome_layout.addWidget(self.welcome_label)
+        self.welcome_layout.addWidget(self.proceed_button, alignment=QtCore.Qt.AlignCenter)
+        self.welcome_widget.setLayout(self.welcome_layout)
+        
+        self.setCentralWidget(self.welcome_widget)
+
+    def setQuestionScreen(self):
+        """
+        Sets up the question screen
+        """
         font = QFont()
         font.setPointSize(25)
         # Set the new font on the label
@@ -111,32 +171,6 @@ class MyWindow(QMainWindow):
         Creates the different buttons
         """
 
-        # style of the buttons
-        self.buttonStyleOff = """
-            QPushButton {
-            background-color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 60px; /* Increased padding for larger buttons */
-        }
-        """
-        self.buttonStyleOn = """
-            QPushButton {
-            background-color: grey;
-            border: none;
-            border-radius: 10px;
-            padding: 60px; /* Increased padding for larger buttons */
-        }
-        """
-        self.buttonConfirm = """
-            QPushButton {
-            background-color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 30px; /* Increased padding for larger buttons */
-        }
-        """
-
         # font of all buttons
         fontButtons = QFont()
         fontButtons.setPointSize(18)  # Increased font size
@@ -159,7 +193,7 @@ class MyWindow(QMainWindow):
         self.confirm = QtWidgets.QPushButton(self)
         self.confirm.clicked.connect(self.confirmed)
         self.confirm.setText("I confirm my choice.")
-        self.confirm.setStyleSheet(self.buttonConfirm)
+        self.confirm.setStyleSheet(self.buttonProceed)
         self.confirm.setFont(fontButtons)
 
 
