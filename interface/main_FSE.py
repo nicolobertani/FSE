@@ -103,7 +103,7 @@ class MyWindow(QMainWindow):
         
         # Create the proceed button
         self.proceed_button = QtWidgets.QPushButton("Proceed")
-        self.proceed_button.setFont(fontButtons)
+        self.proceed_button.setFont(fontProceed)
         self.proceed_button.setStyleSheet(buttonProceed)  # Apply the buttonProceed style
         self.proceed_button.clicked.connect(self.setQuestionScreen)
         
@@ -163,7 +163,7 @@ class MyWindow(QMainWindow):
         self.confirm.clicked.connect(self.confirmed)
         self.confirm.setText("I confirm my choice.")
         self.confirm.setStyleSheet(buttonProceed)
-        self.confirm.setFont(fontButtons)
+        self.confirm.setFont(fontProceed)
 
     def setCodeDirectory(self, code, directory):
         """
