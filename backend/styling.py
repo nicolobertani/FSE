@@ -1,8 +1,12 @@
 from PyQt5.QtGui import QFont
 
-# text style 
+# title style 
 fontTitle = QFont()
 fontTitle.setPointSize(25)
+
+# font of the instructions
+instructions_font = QFont()
+instructions_font.setPointSize(18)
 
 # font of buttons
 fontButtons = QFont()
@@ -15,6 +19,12 @@ fontProceed.setItalic(True)
 
 
 # style of the buttons
+instructionStyle = """
+    background-color: white; 
+    color: black; 
+    border-radius: 10px;
+"""
+
 buttonStyleOff = """
     QPushButton {
     background-color: white;
@@ -35,6 +45,7 @@ buttonStyleOn = """
 """
 buttonProceed = """
     QPushButton {
+    color : black;  
     background-color: white;
     border: none;
     border-radius: 10px;

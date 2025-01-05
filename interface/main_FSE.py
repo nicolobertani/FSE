@@ -87,15 +87,13 @@ class MyWindow(QMainWindow):
         self.welcome_label.setAlignment(QtCore.Qt.AlignCenter)
         
         # Create the instructions label
-        instructions_font = QFont()
-        instructions_font.setPointSize(18)
-        self.instructions_label = QtWidgets.QLabel("These are the instructions.")
+        self.instructions_label = QtWidgets.QLabel(experiment_text["instructions"])
         self.instructions_label.setFont(instructions_font)
         self.instructions_label.setAlignment(QtCore.Qt.AlignLeft)
         
         # Create a container widget for the instructions label
         self.instructions_container = QWidget()
-        self.instructions_container.setStyleSheet("background-color: white; border-radius: 10px;")
+        self.instructions_container.setStyleSheet(instructionStyle)
         self.instructions_layout = QVBoxLayout()
         self.instructions_layout.setContentsMargins(30, 30, 30, 30)  # Add padding
         self.instructions_layout.addWidget(self.instructions_label)
@@ -275,7 +273,7 @@ class MyWindow(QMainWindow):
         centralWidget = self.centralWidget()
         if centralWidget is not None:
             centralWidget.deleteLater()
-        self.messageFinished = QtWidgets.QLabel("The experiment is over, thank you for your help !")
+        self.messageFinished = QtWidgets.QLabel(experiment_text["final_message"])
         self.messageFinished.setAlignment(QtCore.Qt.AlignCenter)
         self.messageFinished.setFont(QFont("Arial", 20))
         messageLayout = QVBoxLayout()
