@@ -27,7 +27,7 @@ from PyQt5 import QtCore, QtWidgets
 # from PyQt5.QtCore import Qt
 from backend.model_interface import FSE
 from backend.shared_info import shared_info
-from backend.styling import buttonStyleOff, buttonStyleOn, buttonProceed  # Import styles
+from backend.styling import *
 
 
 class MyWindow(QMainWindow):
@@ -87,12 +87,9 @@ class MyWindow(QMainWindow):
         """
         Sets up the welcome screen
         """
-        font = QFont()
-        font.setPointSize(25)
-        
         # Create the welcome label
         self.welcome_label = QtWidgets.QLabel("Welcome to the Lottery Experiment!")
-        self.welcome_label.setFont(font)
+        self.welcome_label.setFont(fontTitle)
         self.welcome_label.setAlignment(QtCore.Qt.AlignCenter)
         
         # Create the instructions label
@@ -112,7 +109,7 @@ class MyWindow(QMainWindow):
         
         # Create the proceed button
         self.proceed_button = QtWidgets.QPushButton("Proceed")
-        self.proceed_button.setFont(font)
+        self.proceed_button.setFont(fontButtons)
         self.proceed_button.setStyleSheet(buttonProceed)  # Apply the buttonProceed style
         self.proceed_button.clicked.connect(self.setQuestionScreen)
         
@@ -130,11 +127,8 @@ class MyWindow(QMainWindow):
         """
         Sets up the question screen
         """
-        font = QFont()
-        font.setPointSize(25)
-        # Set the new font on the label
         self.sentence = QtWidgets.QLabel()
-        self.sentence.setFont(font)
+        self.sentence.setFont(fontTitle)
         
         self.createButtons()
 
@@ -156,10 +150,6 @@ class MyWindow(QMainWindow):
         """
         Creates the different buttons
         """
-        # font of all buttons
-        fontButtons = QFont()
-        fontButtons.setPointSize(18)  # Increased font size
-
         # Create the buttons for the options
         self.option1 = QtWidgets.QPushButton(self)
         self.option1.clicked.connect(self.clickedOption1)
