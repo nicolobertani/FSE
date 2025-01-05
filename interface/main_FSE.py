@@ -124,6 +124,21 @@ class MyWindow(QMainWindow):
         self.welcome_label.setFont(font)
         self.welcome_label.setAlignment(QtCore.Qt.AlignCenter)
         
+        # Create the instructions label
+        instructions_font = QFont()
+        instructions_font.setPointSize(18)
+        self.instructions_label = QtWidgets.QLabel("These are the instructions.")
+        self.instructions_label.setFont(instructions_font)
+        self.instructions_label.setAlignment(QtCore.Qt.AlignLeft)
+        
+        # Create a container widget for the instructions label
+        self.instructions_container = QWidget()
+        self.instructions_container.setStyleSheet("background-color: white; border-radius: 10px;")
+        self.instructions_layout = QVBoxLayout()
+        self.instructions_layout.setContentsMargins(30, 30, 30, 30)  # Add padding
+        self.instructions_layout.addWidget(self.instructions_label)
+        self.instructions_container.setLayout(self.instructions_layout)
+        
         # Create the proceed button
         self.proceed_button = QtWidgets.QPushButton("Proceed")
         self.proceed_button.setFont(font)
@@ -134,6 +149,7 @@ class MyWindow(QMainWindow):
         self.welcome_widget = QWidget()
         self.welcome_layout = QVBoxLayout()
         self.welcome_layout.addWidget(self.welcome_label)
+        self.welcome_layout.addWidget(self.instructions_container)  # Add the container instead of the label
         self.welcome_layout.addWidget(self.proceed_button, alignment=QtCore.Qt.AlignCenter)
         self.welcome_widget.setLayout(self.welcome_layout)
         
@@ -299,10 +315,8 @@ class MyWindow(QMainWindow):
         if self.option2Clicked or self.option1Clicked: # don't do anything if no option has been clicked
             if self.option1Clicked:
                 self.sure_amount, self.proba = self.model.calculate(self.question_order[0])
-                print(self.question_order[0])
             else:
                 self.sure_amount, self.proba = self.model.calculate(self.question_order[1])
-                print(self.question_order[1])
             self.updateText()
             self.updateTextButtons()
             self.resetButtons()
