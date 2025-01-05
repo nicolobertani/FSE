@@ -26,7 +26,7 @@ from PyQt5.QtGui import QFont
 from PyQt5 import QtCore, QtWidgets
 # from PyQt5.QtCore import Qt
 from backend.model_interface import FSE
-from backend.shared_info import shared_info
+from backend.shared_info import *
 from backend.styling import *
 
 
@@ -58,12 +58,6 @@ class MyWindow(QMainWindow):
         self.setGeometry(self.xpos, self.ypos, self.width, self.height)
         self.setWindowTitle("Lottery Check")
 
-        # Set question text
-        self.amount_currency = "£"  # Define the currency here
-        self.sentence_string = "Question {}:\nWhich of the following options do you prefer?"
-        self.sentence_sure = "Receiving {} for sure."
-        self.sentence_lottery = "A lottery where you can either receive {} with {} probability, or receive {} otherwise."
-
         # Set empty attributes
         self.code = None
         self.directory = None
@@ -88,7 +82,7 @@ class MyWindow(QMainWindow):
         Sets up the welcome screen
         """
         # Create the welcome label
-        self.welcome_label = QtWidgets.QLabel("Welcome to the Lottery Experiment!")
+        self.welcome_label = QtWidgets.QLabel(experiment_text["welcome"])
         self.welcome_label.setFont(fontTitle)
         self.welcome_label.setAlignment(QtCore.Qt.AlignCenter)
         
@@ -193,16 +187,16 @@ class MyWindow(QMainWindow):
         """
         Updates the different texts
         """
-        self.sentence.setText(self.sentence_string.format(
+        self.sentence.setText(experiment_text["sentence_string"].format(
             f"{self.model.getSimAnswers().shape[0]:.0f}"
         ))
-        lottery_text = self.sentence_lottery.format(
-            f"{self.amount_currency}{shared_info['x']}",
+        lottery_text = experiment_text["sentence_lottery"].format(
+            f"{experiment_text['amount_currency']}{shared_info['x']}",
             f"{self.proba * 100:.0f}%",
-            f"{self.amount_currency}{shared_info['y']}"
+            f"{experiment_text['amount_currency']}{shared_info['y']}"
         )
-        sure_amount_text = self.sentence_sure.format(
-            f"{self.amount_currency}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
+        sure_amount_text = experiment_text["sentence_sure"].format(
+            f"{experiment_text['amount_currency']}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
         )
         sentences = [lottery_text, sure_amount_text]
         self.question_order = random.sample([0, 1], 2)
