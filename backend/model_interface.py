@@ -4,6 +4,7 @@
 
 import os
 import sys
+import datetime
 
 # define the path to the folder
 file_path = os.path.abspath(__file__)
@@ -113,6 +114,9 @@ class FSE:
         # asks the question and records the truth
         self.sim_answers.loc[self.iteration, "s"] = int(answer)
         self.sim_answers.loc[self.iteration, "s_tilde"] = 1 if self.sim_answers.loc[self.iteration, "s"] else -1
+
+        # record the current time
+        self.sim_answers.loc[self.iteration, "timestamp"] = datetime.datetime.now()
 
         # prepare parameters for LPs
         A2 = self.sim_answers["s_tilde"].values * I_spline(x = self.sim_answers["p_x"], k=FSE.order, interior_knots=self.chosen_xi, individual=True) # question part
