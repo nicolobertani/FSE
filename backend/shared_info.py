@@ -11,18 +11,18 @@ experiment_text = {
     "welcome" : "Welcome to the experiment!",
     "instructions" : f"""
     You will be presented with a series of questions.
-    In each question, you will be asked to choose between receiving a sure amount of money or participating in a lottery.
-    To make your choice, select the option you prefer and then confirm your choice.
+    In each question, you will choose between receiving a fixed amount of money or participating in a lottery.
+    To make your choice, simply select the option you prefer on the screen and then confirm your choice.
+    Please read the options carefully before making your choice.
 
-    There is no right or wrong answer: we are simply interested in your preferences.
+    There are no right or wrong answers: we are only interested in your preferences.
 
-    For your participantion in the experiment, you will receive a fixed payment of {currency}{fixed_payment}.
-    In addition, you have a chance to win a bonus payment up to {currency}{shared_info['x']} based on your choices.
-    One in ten participants will be randomly selected for bonus payment.
-    If you are selected, one of the choices made in the experiment will be randomly selected and the associated win will be added to your payment.
-    If the selected choice is a lottery, the bonus payment is determined by simulating the outcome of the lottery.
-
-    You will now be presented a practice question, to familiarize yourself with the task. 
+    For participating in this experiment, you will receive a fixed payment of {currency}{fixed_payment}.
+    Additionally, you have a chance to win a bonus payment of up to {currency}{shared_info['x']}, depending on your choices.
+    One in ten participants will be randomly selected for the bonus payment.
+    If you are selected, one of your choices from the experiment will be randomly picked, and the associated reward will be added to your payment.
+    If the chosen reward is a lottery, the bonus payment will be determined by simulating the outcome of that lottery.
+    You will now be presented with a practice question to help you become familiar with the task.
     Press the button below to proceed to the practice question.
     """,
     "amount_currency" : currency,
