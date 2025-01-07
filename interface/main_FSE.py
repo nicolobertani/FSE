@@ -191,7 +191,8 @@ class MyWindow(QMainWindow):
         lottery_text = experiment_text["sentence_lottery"].format(
             f"{experiment_text['amount_currency']}{shared_info['x']}",
             f"{self.proba * 100:.0f}%",
-            f"{experiment_text['amount_currency']}{shared_info['y']}"
+            f"{experiment_text['amount_currency']}{shared_info['y']}",
+            f"{(1 - self.proba) * 100:.0f}%",
         )
         sure_amount_text = experiment_text["sentence_sure"].format(
             f"{experiment_text['amount_currency']}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
