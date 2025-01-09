@@ -32,18 +32,7 @@ from backend.styling import *
 
 class MyWindow(QMainWindow):
     """
-    Responsible of handling the view of the main window. The main window is composed by the main sentence stating
-    the 2 options for the user, the two buttons for picking an option, and a button to confirm.
-
-    Attributes:
-            -sure_amount: value of the sure amount that can be chosen
-            -lottery_1: value of the 1st amount offered in the lottery choice
-            -lottery_2: value of the 2nd amount offered in the lottery choice
-            -proba: probability to win the 1st amount in the lottery choice
-            -code: code of the user
-            -directory: directory to save the results in
-            -model: the model used to calculate the results
-            -sentence_string: the sentence showed above
+    Responsible of handling the view of the main window. 
     """
 
     def __init__(self):
@@ -180,6 +169,45 @@ class MyWindow(QMainWindow):
         self.comprehension_label.setFont(fontTitle)
         self.comprehension_label.setAlignment(QtCore.Qt.AlignCenter)
 
+        # Create the instructions label for the comprehension screen
+        self.comprehension_instructions_label = QtWidgets.QLabel("Please read the instructions carefully and answer the question below.")
+        self.comprehension_instructions_label.setFont(instructions_font)
+        self.comprehension_instructions_label.setAlignment(QtCore.Qt.AlignLeft)
+
+        # Create a container widget for the comprehension instructions label
+        self.comprehension_instructions_container = QWidget()
+        self.comprehension_instructions_container.setStyleSheet(instructionStyle)
+        self.comprehension_instructions_layout = QVBoxLayout()
+        self.comprehension_instructions_layout.setContentsMargins(30, 30, 30, 30)  # Add padding
+        self.comprehension_instructions_layout.addWidget(self.comprehension_instructions_label)
+        self.comprehension_instructions_container.setLayout(self.comprehension_instructions_layout)
+
+        # Create the multiple-option question
+        self.question_label = QtWidgets.QLabel("What is the capital of France?")
+        self.question_label.setFont(fontButtons)
+        self.question_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.option_group = QtWidgets.QButtonGroup(self)
+        self.option1 = QtWidgets.QRadioButton("Paris")
+        self.option2 = QtWidgets.QRadioButton("London")
+        self.option3 = QtWidgets.QRadioButton("Berlin")
+
+        self.option_group.addButton(self.option1)
+        self.option_group.addButton(self.option2)
+        self.option_group.addButton(self.option3)
+
+        # Create a vertical layout for the question and options
+        self.options_layout = QVBoxLayout()
+        self.options_layout.addWidget(self.question_label, alignment=QtCore.Qt.AlignCenter)
+        self.options_layout.addWidget(self.option1)
+        self.options_layout.addWidget(self.option2)
+        self.options_layout.addWidget(self.option3)
+
+        # Create a container widget for the options layout
+        self.options_container = QWidget()
+        self.options_container.setLayout(self.options_layout)
+        self.options_container.setStyleSheet("background-color: white; border: 1px solid darkgrey; padding: 10px; border-radius: 10px;")
+
         # Create the proceed button for the comprehension screen
         self.proceed_to_exp = QtWidgets.QPushButton("Proceed")
         self.proceed_to_exp.setFont(fontProceed)
@@ -191,6 +219,9 @@ class MyWindow(QMainWindow):
         self.comprehension_layout = QVBoxLayout()
         self.comprehension_widget.setLayout(self.comprehension_layout)
         self.comprehension_layout.addWidget(self.comprehension_label, alignment=QtCore.Qt.AlignCenter)
+        self.comprehension_layout.addWidget(self.comprehension_instructions_container)
+        self.comprehension_layout.addWidget(self.question_label, alignment=QtCore.Qt.AlignCenter)
+        self.comprehension_layout.addWidget(self.options_container, alignment=QtCore.Qt.AlignCenter)
         self.comprehension_layout.addWidget(self.proceed_to_exp, alignment=QtCore.Qt.AlignCenter)
         self.setCentralWidget(self.comprehension_widget)
 
@@ -224,6 +255,7 @@ class MyWindow(QMainWindow):
         # Set up the layout for the practice question screen
         self.practice_widget = QWidget()
         self.practice_layout = QVBoxLayout()
+        self.practice_widget.setLayout(self.practice_layout)
         self.practice_layout.addWidget(self.practice_label, alignment=QtCore.Qt.AlignCenter)
         self.practice_layout.addWidget(self.practice_instructions_container)  # Add the container
         self.practice_layout.addWidget(self.proceed_to_exp, alignment=QtCore.Qt.AlignCenter)
