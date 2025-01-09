@@ -103,7 +103,7 @@ class MyWindow(QMainWindow):
         self.proceed_button = QtWidgets.QPushButton("Proceed")
         self.proceed_button.setFont(fontProceed)
         self.proceed_button.setStyleSheet(buttonProceed)  # Apply the buttonProceed style
-        self.proceed_button.clicked.connect(self.setProceedToExpScreen)
+        self.proceed_button.clicked.connect(self.setPracticeQuestionScreen)
         
         # Set up the layout for the welcome screen
         self.welcome_widget = QWidget()
@@ -115,6 +115,63 @@ class MyWindow(QMainWindow):
         
         self.setCentralWidget(self.welcome_widget)
 
+    def setPracticeQuestionScreen(self):
+        """
+        Sets up the practice question screen with the same structure as the question screen,
+        but the buttons do not interact with the model.
+        """
+        self.practice_sentence = QtWidgets.QLabel("This is a practice question.")
+        self.practice_sentence.setFont(fontTitle)
+        self.practice_sentence.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Create the practice buttons
+        # Option 1
+        lottery_text = experiment_text["sentence_lottery"].format(
+            f"{experiment_text['amount_currency']}{shared_info['x']}",
+            "60%",
+            f"{experiment_text['amount_currency']}{shared_info['y']}",
+            "40%",
+        )
+        self.option1 = QtWidgets.QPushButton(lottery_text)
+        self.option1.setFont(fontButtons)
+        self.option1.setStyleSheet(buttonStyleOff)
+        self.option1.clicked.connect(self.clickedOption1)
+        self.option1Clicked = False
+
+        # Option 2
+        sure_amount_text = experiment_text["sentence_sure"].format(
+            f"{experiment_text['amount_currency']}{"50"}"
+        )
+        self.option2 = QtWidgets.QPushButton(sure_amount_text)
+        self.option2.setFont(fontButtons)
+        self.option2.setStyleSheet(buttonStyleOff)
+        self.option2.clicked.connect(self.clickedOption2)
+        self.option2Clicked = False
+
+        # Confirm button
+        self.practice_confirm = QtWidgets.QPushButton(experiment_text["confirm"])
+        self.practice_confirm.setFont(fontProceed)
+        self.practice_confirm.setStyleSheet(buttonProceed)
+        self.practice_confirm.clicked.connect(self.confirmedPractice)
+
+        # Set up the layout for the practice question screen
+        self.practice_widget = QWidget()
+        self.practice_layout = QVBoxLayout()
+        self.practice_widget.setLayout(self.practice_layout)
+        self.practice_layout.addWidget(self.practice_sentence, alignment=QtCore.Qt.AlignCenter)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.option1)
+        button_layout.addWidget(self.option2)
+        self.practice_layout.addLayout(button_layout)
+
+        self.practice_layout.addWidget(self.practice_confirm, alignment=QtCore.Qt.AlignCenter)
+        self.setCentralWidget(self.practice_widget)
+
+    def confirmedPractice(self):
+        if self.option2Clicked or self.option1Clicked:
+            self.setProceedToExpScreen()
+
     def setProceedToExpScreen(self):
         """
         This screen introduces the experiment
@@ -125,7 +182,7 @@ class MyWindow(QMainWindow):
 
         # Create the instructions label for the practice question screen
         # self.practice_instructions_label = QtWidgets.QLabel(experiment_text["practice_instructions"])
-        self.practice_instructions_label = QtWidgets.QLabel("The previous question was just for practice.\nThe experiment will now start.\n\nAll choices you will make from now could be selected to be paid out.")
+        self.practice_instructions_label = QtWidgets.QLabel(experiment_text["instructions_reminder"])
         self.practice_instructions_label.setFont(instructions_font)
         self.practice_instructions_label.setAlignment(QtCore.Qt.AlignLeft)
 
@@ -197,7 +254,7 @@ class MyWindow(QMainWindow):
         # confirm button
         self.confirm = QtWidgets.QPushButton(self)
         self.confirm.clicked.connect(self.confirmed)
-        self.confirm.setText("I confirm my choice.")
+        self.confirm.setText(experiment_text["confirm"])
         self.confirm.setStyleSheet(buttonProceed)
         self.confirm.setFont(fontProceed)
 

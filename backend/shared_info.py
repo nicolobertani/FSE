@@ -26,11 +26,18 @@ experiment_text = {
     You will now be presented with a practice question to help you become familiar with the task.
     Press the button below to proceed to the practice question.
     """,
+    "instructions_reminder" : f"""
+    The previous question was just for practice.
+    The experiment will now start.
+    
+    All choices you will make from now could be selected to be added to your final payment."
+    """,
     "amount_currency" : currency,
     "sentence_string" : "Question {}:\nWhich of the following options do you prefer?",
     "sentence_sure" : "Receiving {} for sure.",
     # "sentence_lottery" : "A lottery where you can either receive {} with {} probability, or receive {} otherwise.",
     # "sentence_lottery" : "A lottery that will pay:\n\n{} with {} probability,\nor\n{} with {} probability.",
     "sentence_lottery" : "A lottery where you can either receive:\n\n{} with {} probability,\nor\n{} with {} probability.",
+    "confirm" : "I confirm my choice.",
     "final_message" : "The experiment is over, thank you for your help!"
 }
