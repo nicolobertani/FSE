@@ -170,7 +170,29 @@ class MyWindow(QMainWindow):
 
     def confirmedPractice(self):
         if self.option2Clicked or self.option1Clicked:
-            self.setProceedToExpScreen()
+            self.setComprehensionScreen()
+
+    def setComprehensionScreen(self):
+        """
+        Sets up the comprehension screen.
+        """
+        self.comprehension_label = QtWidgets.QLabel("Comprehension question")
+        self.comprehension_label.setFont(fontTitle)
+        self.comprehension_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Create the proceed button for the comprehension screen
+        self.proceed_to_exp = QtWidgets.QPushButton("Proceed")
+        self.proceed_to_exp.setFont(fontProceed)
+        self.proceed_to_exp.setStyleSheet(buttonProceed)
+        self.proceed_to_exp.clicked.connect(self.setProceedToExpScreen)
+
+        # Set up the layout for the comprehension screen
+        self.comprehension_widget = QWidget()
+        self.comprehension_layout = QVBoxLayout()
+        self.comprehension_widget.setLayout(self.comprehension_layout)
+        self.comprehension_layout.addWidget(self.comprehension_label, alignment=QtCore.Qt.AlignCenter)
+        self.comprehension_layout.addWidget(self.proceed_to_exp, alignment=QtCore.Qt.AlignCenter)
+        self.setCentralWidget(self.comprehension_widget)
 
     def setProceedToExpScreen(self):
         """
@@ -181,7 +203,6 @@ class MyWindow(QMainWindow):
         self.practice_label.setAlignment(QtCore.Qt.AlignCenter)
 
         # Create the instructions label for the practice question screen
-        # self.practice_instructions_label = QtWidgets.QLabel(experiment_text["practice_instructions"])
         self.practice_instructions_label = QtWidgets.QLabel(experiment_text["instructions_reminder"])
         self.practice_instructions_label.setFont(instructions_font)
         self.practice_instructions_label.setAlignment(QtCore.Qt.AlignLeft)
