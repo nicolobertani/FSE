@@ -36,7 +36,7 @@ buttonStyleOff = """
 """
 buttonStyleOn = """
     QPushButton {
-    background-color: grey;
+    background-color: lightblue;
     color: darkblue;
     border: none;
     border-radius: 10px;

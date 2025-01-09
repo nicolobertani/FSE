@@ -115,23 +115,23 @@ class MyWindow(QMainWindow):
 
         # Create the practice buttons
         # Option 1
-        lottery_text = experiment_text["sentence_lottery"].format(
+        self.practice_lottery_text = experiment_text["sentence_lottery"].format(
             f"{experiment_text['amount_currency']}{shared_info['x']}",
-            "60%",
+            f"{shared_info['practice_p'] * 100:.0f}%",
             f"{experiment_text['amount_currency']}{shared_info['y']}",
-            "40%",
+            f"{(1 - shared_info['practice_p']) * 100:.0f}%",
         )
-        self.option1 = QtWidgets.QPushButton(lottery_text)
+        self.option1 = QtWidgets.QPushButton(self.practice_lottery_text)
         self.option1.setFont(fontButtons)
         self.option1.setStyleSheet(buttonStyleOff)
         self.option1.clicked.connect(self.clickedOption1)
         self.option1Clicked = False
 
         # Option 2
-        sure_amount_text = experiment_text["sentence_sure"].format(
-            f"{experiment_text['amount_currency']}{"50"}"
+        self.practice_sure_text = experiment_text["sentence_sure"].format(
+            f"{experiment_text['amount_currency']}{shared_info["practice_z"]:.2f}".rstrip('0').rstrip('.')
         )
-        self.option2 = QtWidgets.QPushButton(sure_amount_text)
+        self.option2 = QtWidgets.QPushButton(self.practice_sure_text)
         self.option2.setFont(fontButtons)
         self.option2.setStyleSheet(buttonStyleOff)
         self.option2.clicked.connect(self.clickedOption2)
@@ -175,11 +175,11 @@ class MyWindow(QMainWindow):
         self.comprehension_instructions_label.setAlignment(QtCore.Qt.AlignLeft)
 
         # Create a container widget for the comprehension instructions label
-        self.comprehension_instructions_container = QWidget()
-        self.comprehension_instructions_container.setStyleSheet(instructionStyle)
         self.comprehension_instructions_layout = QVBoxLayout()
         self.comprehension_instructions_layout.setContentsMargins(30, 30, 30, 30)  # Add padding
         self.comprehension_instructions_layout.addWidget(self.comprehension_instructions_label)
+        self.comprehension_instructions_container = QWidget()
+        self.comprehension_instructions_container.setStyleSheet(instructionStyle)
         self.comprehension_instructions_container.setLayout(self.comprehension_instructions_layout)
 
         # Comprehension question 1
@@ -187,24 +187,26 @@ class MyWindow(QMainWindow):
         self.q1_container.setContentsMargins(30, 30, 30, 30)  # Add padding
         self.q1_container.setSpacing(10)  # Add spacing between elements
         self.q1_container_wgt = QWidget()
+        self.q1_container_wgt.setStyleSheet(instructionStyle)
         self.q1_container_wgt.setLayout(self.q1_container)
-        self.q1_container_wgt.setStyleSheet("background-color: white; padding: 10px; border-radius: 10px;")
 
-        self.q1_label = QtWidgets.QLabel(experiment_text["comp_q1"])
-        self.q1_label.setFont(fontButtons)
+        self.q1_label = QtWidgets.QLabel(experiment_text["comp_q1"].format(self.practice_lottery_text.rstrip('.').replace('\n', ' ')))
+        self.q1_label.setFont(instructions_font)
         self.q1_label.setAlignment(QtCore.Qt.AlignLeft)
 
         ## Create the options for the first comprehension question
         self.q1_answers = QtWidgets.QButtonGroup(self)
-        self.q1_opt1 = QtWidgets.QRadioButton("Paris")
-        self.q1_opt2 = QtWidgets.QRadioButton("London")
-        self.q1_opt3 = QtWidgets.QRadioButton("Berlin")
+        self.q1_opt1 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['x']}")
+        self.q1_opt2 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['practice_z']}")
+        self.q1_opt3 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['y']}")
+        for opt in [self.q1_opt1, self.q1_opt2, self.q1_opt3]:
+            opt.setFont(instructions_font)
 
         self.q1_answers.addButton(self.q1_opt1)
         self.q1_answers.addButton(self.q1_opt2)
         self.q1_answers.addButton(self.q1_opt3)
 
-        ## Create a vertical layout for the question and options
+        ## Create a horizontal layout for the options
         self.q1_opt_layout = QHBoxLayout()
         self.q1_opt_layout.addWidget(self.q1_opt1)
         self.q1_opt_layout.addWidget(self.q1_opt2)
@@ -215,9 +217,9 @@ class MyWindow(QMainWindow):
         self.q1_opt_container.setLayout(self.q1_opt_layout)
         self.q1_opt_container.setStyleSheet("background-color: white; border: 1px solid darkgrey; padding: 10px; border-radius: 10px;")
 
-        self.q1_container.addWidget(self.q1_label, alignment=QtCore.Qt.AlignCenter)
+        self.q1_container.addWidget(self.q1_label, alignment=QtCore.Qt.AlignLeft)
         self.q1_container.addWidget(self.q1_opt_container, alignment=QtCore.Qt.AlignCenter)
-        
+
         # Comprehension question 2
         self.q2_container = QVBoxLayout()
         self.q2_container.setContentsMargins(30, 30, 30, 30)  # Add padding
@@ -225,22 +227,25 @@ class MyWindow(QMainWindow):
         self.q2_container_wgt = QWidget()
         self.q2_container_wgt.setLayout(self.q2_container)
         self.q2_container_wgt.setStyleSheet("background-color: white; padding: 10px; border-radius: 10px;")
+        self.q2_container_wgt.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
 
-        self.q2_label = QtWidgets.QLabel(experiment_text["comp_q1"])
+        self.q2_label = QtWidgets.QLabel(experiment_text["comp_q2"].format(self.practice_sure_text.rstrip('.').replace('\n', ' ')))
         self.q2_label.setFont(fontButtons)
         self.q2_label.setAlignment(QtCore.Qt.AlignLeft)
 
-        ## Create the options for the first comprehension question
+        ## Create the options for the second comprehension question
         self.q2_answers = QtWidgets.QButtonGroup(self)
-        self.q2_opt1 = QtWidgets.QRadioButton("Paris")
-        self.q2_opt2 = QtWidgets.QRadioButton("London")
-        self.q2_opt3 = QtWidgets.QRadioButton("Berlin")
+        self.q2_opt1 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['x']}")
+        self.q2_opt2 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['practice_z']}")
+        self.q2_opt3 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['y']}")
+        for opt in [self.q2_opt1, self.q2_opt2, self.q2_opt3]:
+            opt.setFont(instructions_font)
 
         self.q2_answers.addButton(self.q2_opt1)
         self.q2_answers.addButton(self.q2_opt2)
         self.q2_answers.addButton(self.q2_opt3)
 
-        ## Create a vertical layout for the question and options
+        ## Create a horizontal layout for the options
         self.q2_opt_layout = QHBoxLayout()
         self.q2_opt_layout.addWidget(self.q2_opt1)
         self.q2_opt_layout.addWidget(self.q2_opt2)
@@ -251,7 +256,7 @@ class MyWindow(QMainWindow):
         self.q2_opt_container.setLayout(self.q2_opt_layout)
         self.q2_opt_container.setStyleSheet("background-color: white; border: 1px solid darkgrey; padding: 10px; border-radius: 10px;")
 
-        self.q2_container.addWidget(self.q2_label, alignment=QtCore.Qt.AlignCenter)
+        self.q2_container.addWidget(self.q2_label, alignment=QtCore.Qt.AlignLeft)
         self.q2_container.addWidget(self.q2_opt_container, alignment=QtCore.Qt.AlignCenter)
 
         # Create the proceed button for the comprehension screen
@@ -267,7 +272,7 @@ class MyWindow(QMainWindow):
         self.comprehension_layout.addWidget(self.q1_container_wgt, alignment=QtCore.Qt.AlignCenter)
         self.comprehension_layout.addWidget(self.q2_container_wgt, alignment=QtCore.Qt.AlignCenter)
         self.comprehension_layout.addWidget(self.proceed_to_exp, alignment=QtCore.Qt.AlignCenter)
-        
+
         self.comprehension_widget = QWidget()
         self.comprehension_widget.setLayout(self.comprehension_layout)
         self.setCentralWidget(self.comprehension_widget)

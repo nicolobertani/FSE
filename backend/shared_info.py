@@ -4,7 +4,9 @@ shared_info = {
     "x" : 18,
     'y' : 2,
     "step_p" : 0.1,
-    "step_z" : 0.5
+    "step_z" : 0.5,
+    "practice_p" : 0.6,
+    "practice_z" : 5
 }
 
 shared_info.update({
@@ -44,6 +46,12 @@ experiment_text = {
     All choices you will make from now could be selected to be added to your final payment.
     """,
     
+    "comp_instructions" : "Please read the instructions carefully and answer the question below.",
+
+    "comp_q1" : 'Suppose that, in the previous question, you had opted for "{}".\nWhat is the maximal amount you could win?',
+    
+    "comp_q2" : 'Now suppose instead that, in the previous question, you had opted for "{}".\nWhat is the maximal amount you could win in this case?',
+
     "amount_currency" : currency,
     
     "sentence_string" : "Question {}:\nWhich of the following options do you prefer?",
