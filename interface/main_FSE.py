@@ -28,7 +28,6 @@ new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}"
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 from PyQt5.QtGui import QFont
 from PyQt5 import QtCore, QtWidgets
-# from PyQt5.QtCore import Qt
 from backend.model_interface import FSE
 from backend.shared_info import *
 from backend.styling import *
@@ -60,6 +59,7 @@ class MyWindow(QMainWindow):
         self.timestamps = pd.DataFrame(
             dict(zip(['step', 'timestamp'], [['started'], [datetime.datetime.now()]]))
         )
+        self.comprehension_results = None
         self.saveProgress()
 
         # Initialize the UI
@@ -69,6 +69,7 @@ class MyWindow(QMainWindow):
         # Save timestamps and model answers to a JSON file
         results = {
             "timestamps": self.timestamps.to_dict(orient='records'),
+            "comprehension_results": self.comprehension_results,
             "sim_answers": self.model.getSimAnswers().dropna(subset=['s']).to_dict(orient='records')
         }
         with open(os.path.join(results_folder, f"{new_file_name}.json"), 'w') as f:
@@ -292,7 +293,7 @@ class MyWindow(QMainWindow):
         self.proceed_to_exp = QtWidgets.QPushButton("Proceed")
         self.proceed_to_exp.setFont(fontProceed)
         self.proceed_to_exp.setStyleSheet(buttonProceed)
-        self.proceed_to_exp.clicked.connect(self.setProceedToExpScreen)
+        self.proceed_to_exp.clicked.connect(self.checkComprehensionAnswers)
 
         # Set up the layout for the comprehension screen
         self.comprehension_layout = QVBoxLayout()
@@ -305,6 +306,19 @@ class MyWindow(QMainWindow):
         self.comprehension_widget = QWidget()
         self.comprehension_widget.setLayout(self.comprehension_layout)
         self.setCentralWidget(self.comprehension_widget)
+
+    def checkComprehensionAnswers(self):
+        selected_q1 = self.q1_answers.checkedButton()
+        selected_q2 = self.q2_answers.checkedButton()
+
+        if selected_q1 is None or selected_q2 is None:
+            QtWidgets.QMessageBox.warning(self, "Incomplete", "Please answer all comprehension questions before proceeding.")
+        else:
+            self.comprehension_results = {
+                "q1": selected_q1.text(),
+                "q2": selected_q2.text()
+            }
+            self.setProceedToExpScreen()
 
     def setProceedToExpScreen(self):
         """
