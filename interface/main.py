@@ -1,139 +1,43 @@
-# Author: Mathieu Leng
-# Date: 2023
-# version 1.0
-
 import sys
 import os
+import re
+import random
+import datetime
+import json
+import pandas as pd
+
+
+# define the path to the folder
 file_path = os.path.abspath(__file__)
 folder_path = os.path.dirname(file_path)
 parent_folder_path = os.path.dirname(folder_path)
 sys.path.insert(0, parent_folder_path) 
-from backend.model_interface import Model
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLineEdit, QMessageBox, QLabel, QFileDialog
-from PyQt5.QtChart import QChart, QChartView, QPieSeries
-from PyQt5 import QtWidgets
+
+# define name of the file
+experimental_design = 'FSE'
+results_folder = os.path.join(parent_folder_path, 'results')
+if os.path.exists(results_folder) and os.path.isdir(results_folder):
+    result_files = os.listdir(results_folder)
+else:
+    raise FileNotFoundError("Results folder does not exist.")
+filtered_files = [f for f in result_files if re.match(rf'^{experimental_design}_\d{{4}}\.json$', f)]
+numeric_parts = [re.search(r'\d{4}', f).group() for f in filtered_files]
+max_numeric_part = max(map(int, numeric_parts)) if numeric_parts else 0
+new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}"
+
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 from PyQt5.QtGui import QFont
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from PyQt5 import QtCore, QtWidgets
+from backend.model_interface import FSE
+from backend.shared_info import *
+from backend.styling import *
 
-class CodeEntryWindow(QMainWindow):
-    """
-    This first window is responsible for asking a 4-digit code to the user. The code is checked for two things:
-     - the code is really made out of 4 digit
-     - the code has not been used yet in the same directory.
-     The researcher can choose if the user can choose the directory or if the .csv file is saved in the default
-        directory (same as the program)
-    """
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        """
-        Initiates the different components of the first window
-        """
-        self.askDir = False # change if prefer to have default directory
-        self.directory = os.getcwd()
-        self.initWindow()
-        self.initLabel()
-
-    def initWindow(self):
-        """
-        Initiates the components of the window
-        """
-        self.setWindowTitle('Code Entry')
-        self.setGeometry(100, 100, 400, 200)
-        self.font = QFont()
-        self.font.setPointSize(25)
-
-    def initButton(self):
-        """
-        Initiates the components of the button
-        """
-        self.button = QPushButton('Enter Code', self)
-        self.button.setGeometry(150, 80, 100, 30)
-        self.buttonStyle = """
-            QPushButton {
-            background-color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 10px;
-        }
-        """
-        fontButtons = QFont()
-        fontButtons.setPointSize(15)
-        self.button.setFont(fontButtons)
-        self.button.setStyleSheet(self.buttonStyle)
-        self.button.clicked.connect(self.checkCode)
-
-    def initLabel(self):
-        """
-        Initiates the components of the box in which you can write the 4-digit code
-        """
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        self.label = QLabel('Please enter a 4-digit code:', self)
-        self.label.setFont(self.font)
-        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignHCenter)  # Center the label horizontally
-        self.input_field = QLineEdit(self)
-        self.input_field.setFont(self.font)
-        layout.addWidget(self.input_field, alignment=Qt.AlignmentFlag.AlignHCenter)  # Center the input field horizontally
-        self.initButton()
-        layout.addWidget(self.button, alignment=Qt.AlignmentFlag.AlignHCenter)  # Center the button horizontally
-
-    def checkFileExists(self):
-        """
-        Checks that the file does not already exist in the chosen directory
-        :return:
-            boolean indicating if the file already exists or not
-        """
-        return os.path.exists(os.path.join(self.directory, self.code + ".csv"))
-
-    def checkCode(self):
-        """
-        Checks that the code is correct:
-            - correct format
-            - does not exist already
-        """
-        self.code = self.input_field.text()
-        if len(self.code) == 4 and self.code.isdigit():
-            if self.askDir:
-                self.directory = QFileDialog.getExistingDirectory(self, "Choose Directory", os.path.expanduser("~"))
-
-            if self.checkFileExists():
-                QMessageBox.warning(self, 'Invalid Code', 'This code already exists')
-
-            else:
-                self.close()
-                self.openSecondWindow()
-        else:
-            QMessageBox.warning(self, 'Invalid Code', 'Invalid code format. Please enter a 4-digit numeric code.')
-
-    def openSecondWindow(self):
-        """
-        Opens the second window
-        """
-        self.main_window = MyWindow()
-        self.main_window.setCodeDirectory(self.code, self.directory)
-        self.main_window.show()
 
 class MyWindow(QMainWindow):
     """
-    Responsible of handling the view of the main window. The main window is composed by the main sentence stating
-    the 2 options for the user, the two charts, 2 buttons to pick one of the two option, and a button to confirm.
-
-    Attributes:
-            -xpos, ypos, width, height: different attributes for the UI, see PyQt documentation
-            -sure_amount: value of the sure amount that can be chosen
-            -lottery_1: value of the 1st amount offered in the lottery choice
-            -lottery_2: value of the 2nd amount offered in the lottery choice
-            -proba: probability to win the 1st amount in the lottery choice
-            -code: code of the user
-            -directory: directory to save the results in
-            -model: the model used to calculate the results
-            -sentence_string: the sentence showed above
+    Responsible of handling the view of the main window. 
     """
+
     def __init__(self):
         """
         Initializes the main window
@@ -141,48 +45,356 @@ class MyWindow(QMainWindow):
         super(MyWindow, self).__init__()
         self.xpos = 0
         self.ypos = 0
-        self.width = 600
+        self.width = 1200
         self.height = 600
-
-        # initial values, may be chnaged for other applications
-        self.sure_amount = 65.0
-        self.lottery_1 = 10
-        self.lottery_2 = 120
-        self.proba = 90.0
-
-        self.code = None
-        self.directory = None
         self.setGeometry(self.xpos, self.ypos, self.width, self.height)
         self.setWindowTitle("Lottery Check")
-        self.model = Model()
-        self.sentence_string = "Do you prefer to win for sure <b>{} </b> or play the lottery and win <b>{} </b> with <b>{}% probabilities </b> or <b>{} </b> if you lose the lottery"
-        self.createCharts()
+
+        # Initialize the model and the first question
+        self.model = FSE(set_z=shared_info["set_z"])
+        self.sure_amount = self.model.get_train_answers().iloc[-1]['z']
+        self.proba = self.model.get_train_answers().iloc[-1]['p_x']
+        
+        # Set timer
+        self.timestamps = pd.DataFrame(
+            dict(zip(['step', 'timestamp'], [['started'], [datetime.datetime.now()]]))
+        )
+        self.comprehension_results = None
+        self.saveProgress()
+
+        # Initialize the UI
         self.initUI()
+        
+    def saveProgress(self):
+        # Save timestamps and model answers to a JSON file
+        results = {
+            "timestamps": self.timestamps.to_dict(orient='records'),
+            "comprehension_results": self.comprehension_results,
+            "train_answers": self.model.get_train_answers().dropna(subset=['s']).to_dict(orient='records'),
+            "test_answers": self.model.get_test_answers().dropna(subset=['s']).to_dict(orient='records')
+        }
+        with open(os.path.join(results_folder, f"{new_file_name}.json"), 'w') as f:
+            json.dump(results, f, indent=4, default=str)
 
     def initUI(self):
         """
         Initializes all the UI elements
         """
-        font = QFont()
-        font.setPointSize(25)
-        # Set the new font on the label
+        self.setWelcomeScreen()
+
+    def setWelcomeScreen(self):
+        """
+        Sets up the welcome screen
+        """
+        # Create the welcome label
+        self.welcome_label = QtWidgets.QLabel(experiment_text["welcome"])
+        self.welcome_label.setFont(fontTitle)
+        self.welcome_label.setAlignment(QtCore.Qt.AlignCenter)
+        
+        # Create the instructions label
+        self.instructions_label = QtWidgets.QLabel(experiment_text["instructions"])
+        self.instructions_label.setFont(instructions_font)
+        self.instructions_label.setAlignment(QtCore.Qt.AlignLeft)
+        
+        # Create a container widget for the instructions label
+        self.instructions_container = QWidget()
+        self.instructions_container.setStyleSheet(instructionStyle)
+        self.instructions_layout = QVBoxLayout()
+        self.instructions_layout.setContentsMargins(30, 30, 30, 30)  # Add padding
+        self.instructions_layout.addWidget(self.instructions_label)
+        self.instructions_container.setLayout(self.instructions_layout)
+        
+        # Create the proceed button
+        self.proceed_button = QtWidgets.QPushButton("Proceed")
+        self.proceed_button.setFont(fontProceed)
+        self.proceed_button.setStyleSheet(buttonProceed)  # Apply the buttonProceed style
+        self.proceed_button.clicked.connect(self.setPracticeQuestionScreen)
+        
+        # Set up the layout for the welcome screen
+        self.welcome_widget = QWidget()
+        self.welcome_layout = QVBoxLayout()
+        self.welcome_layout.addWidget(self.welcome_label)
+        self.welcome_layout.addWidget(self.instructions_container)  # Add the container instead of the label
+        self.welcome_layout.addWidget(self.proceed_button, alignment=QtCore.Qt.AlignCenter)
+        self.welcome_widget.setLayout(self.welcome_layout)
+        
+        self.setCentralWidget(self.welcome_widget)
+
+    def setPracticeQuestionScreen(self):
+        """
+        Sets up the practice question screen with the same structure as the question screen,
+        but the buttons do not interact with the model.
+        """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'practice_question', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+        self.saveProgress()
+
+        # Create the practice sentence
+        self.practice_sentence = QtWidgets.QLabel("This is a practice question.")
+        self.practice_sentence.setFont(fontTitle)
+        self.practice_sentence.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Create the practice buttons
+        # Option 1
+        self.practice_lottery_text = experiment_text["sentence_lottery"].format(
+            f"{experiment_text['amount_currency']}{shared_info['x']}",
+            f"{shared_info['practice_p'] * 100:.0f}%",
+            f"{experiment_text['amount_currency']}{shared_info['y']}",
+            f"{(1 - shared_info['practice_p']) * 100:.0f}%",
+        )
+        self.option1 = QtWidgets.QPushButton(self.practice_lottery_text)
+        self.option1.setFont(fontButtons)
+        self.option1.setStyleSheet(buttonStyleOff)
+        self.option1.clicked.connect(self.clickedOption1)
+        self.option1Clicked = False
+
+        # Option 2
+        self.practice_sure_text = experiment_text["sentence_sure"].format(
+            f"{experiment_text['amount_currency']}{shared_info["practice_z"]:.2f}".rstrip('0').rstrip('.')
+        )
+        self.option2 = QtWidgets.QPushButton(self.practice_sure_text)
+        self.option2.setFont(fontButtons)
+        self.option2.setStyleSheet(buttonStyleOff)
+        self.option2.clicked.connect(self.clickedOption2)
+        self.option2Clicked = False
+
+        # Confirm button
+        self.practice_confirm = QtWidgets.QPushButton(experiment_text["confirm"])
+        self.practice_confirm.setFont(fontProceed)
+        self.practice_confirm.setStyleSheet(buttonProceed)
+        self.practice_confirm.clicked.connect(self.confirmedPractice)
+
+        # Set up the layout for the practice question screen
+        self.practice_widget = QWidget()
+        self.practice_layout = QVBoxLayout()
+        self.practice_widget.setLayout(self.practice_layout)
+        self.practice_layout.addWidget(self.practice_sentence, alignment=QtCore.Qt.AlignCenter)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.option1)
+        button_layout.addWidget(self.option2)
+        self.practice_layout.addLayout(button_layout)
+
+        self.practice_layout.addWidget(self.practice_confirm, alignment=QtCore.Qt.AlignCenter)
+        self.setCentralWidget(self.practice_widget)
+
+    def confirmedPractice(self):
+        if self.option2Clicked or self.option1Clicked:
+            self.setComprehensionScreen()
+        else:
+            QtWidgets.QMessageBox.warning(self, "Incomplete", "Please select an option before confirming.")
+
+    def setComprehensionScreen(self):
+        """
+        Sets up the comprehension screen.
+        """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'comprehension_question', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+        self.saveProgress()
+
+        self.comprehension_label = QtWidgets.QLabel("Comprehension questions")
+        self.comprehension_label.setFont(fontTitle)
+        self.comprehension_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Create the instructions label for the comprehension screen
+        self.comprehension_instructions_label = QtWidgets.QLabel(experiment_text['comp_instructions'])
+        self.comprehension_instructions_label.setFont(instructions_font)
+        self.comprehension_instructions_label.setAlignment(QtCore.Qt.AlignLeft)
+
+        # Create a container widget for the comprehension instructions label
+        self.comprehension_instructions_layout = QVBoxLayout()
+        self.comprehension_instructions_layout.setContentsMargins(30, 30, 30, 30)  # Add padding
+        self.comprehension_instructions_layout.addWidget(self.comprehension_instructions_label)
+        self.comprehension_instructions_container = QWidget()
+        self.comprehension_instructions_container.setStyleSheet(instructionStyle)
+        self.comprehension_instructions_container.setLayout(self.comprehension_instructions_layout)
+
+        # Comprehension question 1
+        self.q1_container = QVBoxLayout()
+        self.q1_container.setContentsMargins(30, 30, 30, 30)  # Add padding
+        self.q1_container.setSpacing(10)  # Add spacing between elements
+        self.q1_container_wgt = QWidget()
+        self.q1_container_wgt.setStyleSheet(instructionStyle)
+        self.q1_container_wgt.setLayout(self.q1_container)
+
+        self.q1_label = QtWidgets.QLabel(experiment_text["comp_q1"].format(self.practice_lottery_text.rstrip('.').replace('\n', ' ')))
+        self.q1_label.setFont(instructions_font)
+        self.q1_label.setAlignment(QtCore.Qt.AlignLeft)
+
+        ## Create the options for the first comprehension question
+        self.q1_answers = QtWidgets.QButtonGroup(self)
+        self.q1_opt1 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['x']}")
+        self.q1_opt2 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['practice_z']}")
+        self.q1_opt3 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['y']}")
+        for opt in [self.q1_opt1, self.q1_opt2, self.q1_opt3]:
+            opt.setFont(instructions_font)
+
+        self.q1_answers.addButton(self.q1_opt1)
+        self.q1_answers.addButton(self.q1_opt2)
+        self.q1_answers.addButton(self.q1_opt3)
+
+        ## Create a horizontal layout for the options
+        self.q1_opt_layout = QHBoxLayout()
+        self.q1_opt_layout.addWidget(self.q1_opt1)
+        self.q1_opt_layout.addWidget(self.q1_opt2)
+        self.q1_opt_layout.addWidget(self.q1_opt3)
+
+        ## Create a container widget for the options layout
+        self.q1_opt_container = QWidget()
+        self.q1_opt_container.setLayout(self.q1_opt_layout)
+        self.q1_opt_container.setStyleSheet("background-color: white; border: 1px solid darkgrey; padding: 10px; border-radius: 10px;")
+
+        self.q1_container.addWidget(self.q1_label, alignment=QtCore.Qt.AlignLeft)
+        self.q1_container.addWidget(self.q1_opt_container, alignment=QtCore.Qt.AlignCenter)
+
+        # Comprehension question 2
+        self.q2_container = QVBoxLayout()
+        self.q2_container.setContentsMargins(30, 30, 30, 30)  # Add padding
+        self.q2_container.setSpacing(10)  # Add spacing between elements
+        self.q2_container_wgt = QWidget()
+        self.q2_container_wgt.setLayout(self.q2_container)
+        self.q2_container_wgt.setStyleSheet("background-color: white; padding: 10px; border-radius: 10px;")
+        self.q2_container_wgt.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+
+        self.q2_label = QtWidgets.QLabel(experiment_text["comp_q2"].format(self.practice_sure_text.rstrip('.').replace('\n', ' ')))
+        self.q2_label.setFont(fontButtons)
+        self.q2_label.setAlignment(QtCore.Qt.AlignLeft)
+
+        ## Create the options for the second comprehension question
+        self.q2_answers = QtWidgets.QButtonGroup(self)
+        self.q2_opt1 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['x']}")
+        self.q2_opt2 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['practice_z']}")
+        self.q2_opt3 = QtWidgets.QRadioButton(f"{experiment_text['amount_currency']}{shared_info['y']}")
+        for opt in [self.q2_opt1, self.q2_opt2, self.q2_opt3]:
+            opt.setFont(instructions_font)
+
+        self.q2_answers.addButton(self.q2_opt1)
+        self.q2_answers.addButton(self.q2_opt2)
+        self.q2_answers.addButton(self.q2_opt3)
+
+        ## Create a horizontal layout for the options
+        self.q2_opt_layout = QHBoxLayout()
+        self.q2_opt_layout.addWidget(self.q2_opt1)
+        self.q2_opt_layout.addWidget(self.q2_opt2)
+        self.q2_opt_layout.addWidget(self.q2_opt3)
+
+        ## Create a container widget for the options layout
+        self.q2_opt_container = QWidget()
+        self.q2_opt_container.setLayout(self.q2_opt_layout)
+        self.q2_opt_container.setStyleSheet("background-color: white; border: 1px solid darkgrey; padding: 10px; border-radius: 10px;")
+
+        self.q2_container.addWidget(self.q2_label, alignment=QtCore.Qt.AlignLeft)
+        self.q2_container.addWidget(self.q2_opt_container, alignment=QtCore.Qt.AlignCenter)
+
+        # Create the proceed button for the comprehension screen
+        self.proceed_to_exp = QtWidgets.QPushButton("Proceed")
+        self.proceed_to_exp.setFont(fontProceed)
+        self.proceed_to_exp.setStyleSheet(buttonProceed)
+        self.proceed_to_exp.clicked.connect(self.checkComprehensionAnswers)
+
+        # Set up the layout for the comprehension screen
+        self.comprehension_layout = QVBoxLayout()
+        self.comprehension_layout.addWidget(self.comprehension_label, alignment=QtCore.Qt.AlignCenter)
+        self.comprehension_layout.addWidget(self.comprehension_instructions_container)
+        self.comprehension_layout.addWidget(self.q1_container_wgt, alignment=QtCore.Qt.AlignCenter)
+        self.comprehension_layout.addWidget(self.q2_container_wgt, alignment=QtCore.Qt.AlignCenter)
+        self.comprehension_layout.addWidget(self.proceed_to_exp, alignment=QtCore.Qt.AlignCenter)
+
+        self.comprehension_widget = QWidget()
+        self.comprehension_widget.setLayout(self.comprehension_layout)
+        self.setCentralWidget(self.comprehension_widget)
+
+    def checkComprehensionAnswers(self):
+        selected_q1 = self.q1_answers.checkedButton()
+        selected_q2 = self.q2_answers.checkedButton()
+
+        if selected_q1 is None or selected_q2 is None:
+            QtWidgets.QMessageBox.warning(self, "Incomplete", "Please answer all comprehension questions before proceeding.")
+        else:
+            self.comprehension_results = {
+                "q1": selected_q1.text(),
+                "q2": selected_q2.text()
+            }
+            self.setProceedToExpScreen()
+
+    def setProceedToExpScreen(self):
+        """
+        This screen introduces the experiment
+        """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'proceed_to_exp', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+        self.saveProgress()
+
+        self.practice_label = QtWidgets.QLabel("The experiment is about to start!")
+        self.practice_label.setFont(fontTitle)
+        self.practice_label.setAlignment(QtCore.Qt.AlignCenter)
+
+        # Create the instructions label for the practice question screen
+        self.practice_instructions_label = QtWidgets.QLabel(experiment_text["instructions_reminder"])
+        self.practice_instructions_label.setFont(instructions_font)
+        self.practice_instructions_label.setAlignment(QtCore.Qt.AlignLeft)
+
+        # Create a container widget for the practice instructions label
+        self.practice_instructions_container = QWidget()
+        self.practice_instructions_container.setStyleSheet(instructionStyle)
+        self.practice_instructions_layout = QVBoxLayout()
+        self.practice_instructions_layout.setContentsMargins(30, 30, 30, 30)  # Add padding
+        self.practice_instructions_layout.addWidget(self.practice_instructions_label)
+        self.practice_instructions_container.setLayout(self.practice_instructions_layout)
+
+        # Create the proceed button for the practice question screen
+        self.proceed_to_exp = QtWidgets.QPushButton("Proceed to Experiment")
+        self.proceed_to_exp.setFont(fontProceed)
+        self.proceed_to_exp.setStyleSheet(buttonProceed)
+        self.proceed_to_exp.clicked.connect(self.setQuestionScreen)
+
+        # Set up the layout for the practice question screen
+        self.practice_widget = QWidget()
+        self.practice_layout = QVBoxLayout()
+        self.practice_widget.setLayout(self.practice_layout)
+        self.practice_layout.addWidget(self.practice_label, alignment=QtCore.Qt.AlignCenter)
+        self.practice_layout.addWidget(self.practice_instructions_container)  # Add the container
+        self.practice_layout.addWidget(self.proceed_to_exp, alignment=QtCore.Qt.AlignCenter)
+        self.practice_widget.setLayout(self.practice_layout)
+
+        self.setCentralWidget(self.practice_widget)
+
+    def setQuestionScreen(self):
+        """
+        Sets up the question screen
+        """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'start_exp', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+        self.saveProgress()
+
         self.sentence = QtWidgets.QLabel()
-        self.sentence.setFont(font)
+        self.sentence.setFont(fontTitle)
+        
         self.createButtons()
 
         self.widget = QWidget()
-        self.layout = QGridLayout()
+        self.layout = QVBoxLayout()
         self.widget.setLayout(self.layout)
-        self.layout.addWidget(self.sentence, 0, 0, 1, 3, QtCore.Qt.AlignCenter)
-        self.layout.addWidget(QChartView(self.chart1), 2, 0)
-        self.layout.addWidget(QChartView(self.chart2), 2, 2)
-        self.layout.addWidget(self.option1, 1, 0)
-        self.layout.addWidget(self.option2, 1, 2)
-        self.layout.addWidget(self.confirm, 3, 1)
-        self.layout.setRowStretch(0, 1)
-        self.layout.setRowStretch(1, 3)
-        self.layout.setRowStretch(2, 3)
-        self.layout.setRowStretch(3, 1)
+        self.layout.addWidget(self.sentence, alignment=QtCore.Qt.AlignCenter)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.option1)
+        button_layout.addWidget(self.option2)
+        self.layout.addLayout(button_layout)
+
+        self.layout.addWidget(self.confirm, alignment=QtCore.Qt.AlignCenter)
         self.setCentralWidget(self.widget)
         self.updateText()
 
@@ -190,26 +402,7 @@ class MyWindow(QMainWindow):
         """
         Creates the different buttons
         """
-        self.buttonStyleOff = """
-            QPushButton {
-            background-color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 10px;
-        }
-        """
-
-        self.buttonStyleOn = """
-            QPushButton {
-            background-color: grey;
-            border: none;
-            border-radius: 10px;
-            padding: 10px;
-        }
-        """
-        fontButtons = QFont()
-        fontButtons.setPointSize(15)
-
+        # Create the buttons for the options
         self.option1 = QtWidgets.QPushButton(self)
         self.option1.clicked.connect(self.clickedOption1)
         self.option1Clicked = False
@@ -219,43 +412,16 @@ class MyWindow(QMainWindow):
         self.option2Clicked = False
         self.option2.setFont(fontButtons)
 
-        self.option1.setStyleSheet(self.buttonStyleOff)
-        self.option2.setStyleSheet(self.buttonStyleOff)
+        # Apply style
+        self.option1.setStyleSheet(buttonStyleOff)
+        self.option2.setStyleSheet(buttonStyleOff)
 
+        # confirm button
         self.confirm = QtWidgets.QPushButton(self)
         self.confirm.clicked.connect(self.confirmed)
-        self.confirm.setText("Confirm choice")
-        self.confirm.setStyleSheet(self.buttonStyleOff)
-        self.confirm.setFont(fontButtons)
-
-    def createCharts(self):
-        """
-        Creates the 2 charts
-        """
-        self.series1 = QPieSeries()
-        self.series1.append("{}".format(self.sure_amount), 100)
-        self.chart1 = QChart()
-        self.chart1.addSeries(self.series1)
-        self.chart1.setTitle("Sure Option")
-        self.chart1.setTitleFont(QFont("Arial", 20))
-
-        self.series2 = QPieSeries()
-        self.series2.append("{}".format(self.lottery_1), self.proba)
-        self.series2.append("{}".format(self.lottery_2), 100-self.proba)
-        self.chart2 = QChart()
-        self.chart2.addSeries(self.series2)
-        self.chart2.setTitle("Lottery")
-        self.chart2.setTitleFont(QFont("Arial", 20))
-
-    def setCodeDirectory(self, code, directory):
-        """
-        Sets the values for the directory and the code
-        :param code: the code of the user
-        :param directory: directory to save the results in
-        """
-        self.code = code
-        self.directory = directory
-        self.model.setDirectoryFileName(directory, code)
+        self.confirm.setText(experiment_text["confirm"])
+        self.confirm.setStyleSheet(buttonProceed)
+        self.confirm.setFont(fontProceed)
 
     def updateTextButtons(self):
         """
@@ -265,28 +431,27 @@ class MyWindow(QMainWindow):
         self.option1.adjustSize()
         self.option2.adjustSize()
 
-    def updateCharts(self):
-        """
-        Updates the charts
-        """
-        self.series1.clear()
-        self.series1.append("{}".format(self.sure_amount), 100)
-        self.series2.clear()
-        self.series2.append("{}".format(self.lottery_1), self.proba)
-        self.series2.append("{}".format(self.lottery_2), 100-self.proba)
-
-        # update the chart views
-        self.chart1.update()
-        self.chart2.update()
-
     def updateText(self):
         """
         Updates the different texts
         """
-        x5 = 100 - int(self.proba)
-        self.sentence.setText(self.sentence_string.format(self.sure_amount, self.lottery_1, self.proba, self.lottery_2))
-        self.option1.setText('Win {}'.format(self.sure_amount))
-        self.option2.setText('Win {} with {}% probabilities or {} with {}% probabilities '.format(self.lottery_1, self.proba, self.lottery_2,str(x5)))
+        question_number = self.model.get_train_answers().shape[0] + self.model.get_test_answers().shape[0]
+        self.sentence.setText(experiment_text["sentence_string"].format(
+            f"{question_number:.0f}"
+        ))
+        lottery_text = experiment_text["sentence_lottery"].format(
+            f"{experiment_text['amount_currency']}{shared_info['x']}",
+            f"{self.proba * 100:.0f}%",
+            f"{experiment_text['amount_currency']}{shared_info['y']}",
+            f"{(1 - self.proba) * 100:.0f}%",
+        )
+        sure_amount_text = experiment_text["sentence_sure"].format(
+            f"{experiment_text['amount_currency']}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
+        )
+        sentences = [lottery_text, sure_amount_text]
+        self.question_order = random.sample([0, 1], 2)
+        self.option1.setText(sentences[self.question_order[0]])
+        self.option2.setText(sentences[self.question_order[1]])
         self.updateTextButtons()
 
     def toggleOption1(self):
@@ -308,8 +473,8 @@ class MyWindow(QMainWindow):
         """
         self.option1Clicked = False
         self.option2Clicked = False
-        self.option1.setStyleSheet(self.buttonStyleOff)
-        self.option2.setStyleSheet(self.buttonStyleOff)
+        self.option1.setStyleSheet(buttonStyleOff)
+        self.option2.setStyleSheet(buttonStyleOff)
 
     def clickedOption1(self):
         """
@@ -317,12 +482,12 @@ class MyWindow(QMainWindow):
         """
         self.toggleOption1()
         if self.option1Clicked: # if should be clicked now
-            self.option1.setStyleSheet(self.buttonStyleOn)
+            self.option1.setStyleSheet(buttonStyleOn)
             if self.option2Clicked:
                 self.toggleOption2()
-                self.option2.setStyleSheet(self.buttonStyleOff)
+                self.option2.setStyleSheet(buttonStyleOff)
         else: # if was already clicked before
-            self.option1.setStyleSheet(self.buttonStyleOff)
+            self.option1.setStyleSheet(buttonStyleOff)
 
     def clickedOption2(self):
         """
@@ -330,40 +495,50 @@ class MyWindow(QMainWindow):
         """
         self.toggleOption2()
         if self.option2Clicked: # if should be clicked now
-            self.option2.setStyleSheet(self.buttonStyleOn)
+            self.option2.setStyleSheet(buttonStyleOn)
             if self.option1Clicked:
                 self.toggleOption1()
-                self.option1.setStyleSheet(self.buttonStyleOff)
+                self.option1.setStyleSheet(buttonStyleOff)
         else: # if was already clicked before
-            self.option2.setStyleSheet(self.buttonStyleOff)
+            self.option2.setStyleSheet(buttonStyleOff)
 
     def confirmed(self):
         """
         Handles the states when the choice has been confirmed
         """
-        if self.option2Clicked or self.option1Clicked:
+        if self.option2Clicked or self.option1Clicked: # don't do anything if no option has been clicked
+            
             if self.option1Clicked:
-                self.sure_amount, self.proba = self.model.calculate(1)
+                self.sure_amount, self.proba = self.model.next_question(self.question_order[0])
             else:
-                self.sure_amount, self.proba = self.model.calculate(0)
-            self.sure_amount = round(float(self.sure_amount),2)
-            self.proba = round(float(self.proba) * 100,0)
+                self.sure_amount, self.proba = self.model.next_question(self.question_order[1])
+
             self.updateText()
             self.updateTextButtons()
-            self.updateCharts()
             self.resetButtons()
-            self.model.saveSimAnswers()
-            if not self.model.getEpsilon() > 0.1:
+            self.saveProgress()
+
+            if (not self.model.getEpsilon() > 0.1) and (self.model.get_test_iteration() == shared_info['number_test']):
                 self.finished()
+        
+        else:
+            QtWidgets.QMessageBox.warning(self, "Incomplete", "Please select an option before confirming.")
+
 
     def finished(self):
         """
         Cleans the main window and shows end message
         """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'done', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+
         centralWidget = self.centralWidget()
         if centralWidget is not None:
             centralWidget.deleteLater()
-        self.messageFinished = QtWidgets.QLabel("The experiment is over, thank you for your help !")
+        self.messageFinished = QtWidgets.QLabel(experiment_text["final_message"])
         self.messageFinished.setAlignment(QtCore.Qt.AlignCenter)
         self.messageFinished.setFont(QFont("Arial", 20))
         messageLayout = QVBoxLayout()
@@ -371,18 +546,14 @@ class MyWindow(QMainWindow):
         messageWidget = QWidget()
         messageWidget.setLayout(messageLayout)
         self.setCentralWidget(messageWidget)
-        print(self.model.getSimAnswers())
-
-
-
-
-
-def window():
+        self.saveProgress()
+        QtCore.QTimer.singleShot(5000, self.close)
+    
+def __main__():
     app = QApplication(sys.argv) # always start with
-    win = CodeEntryWindow()
-    win.showFullScreen()
+    win = MyWindow()
+    win.show()
+    # win.showFullScreen()
     sys.exit(app.exec_())
 
-
-
-window()
+__main__()
