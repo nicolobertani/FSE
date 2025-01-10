@@ -37,6 +37,7 @@ class FSE:
         self.set_p = set_p
         self.set_z = set_z
         self.iteration = 0
+        self.finished = False
 
         # initialization for question dataframe
         starting_data = [[self.iteration + 1], [starting_p_x], [starting_z], [(starting_z - shared_info["y"]) / (shared_info["x"] - shared_info["y"])], [None], [None]]
@@ -86,20 +87,27 @@ class FSE:
 
     def get_test_answers(self):
         return self.test_answers
+    
+    def get_test_iteration(self):
+        return self.test_iteration
+
+    def check_finished(self):
+        if (self.epsilon <= 0.1) and (self.test_iteration == (shared_info['number_test_questions'] - 1)):
+            self.finished = True
+
+    def get_finished(self):
+        return self.finished
 
     def draw_test_sample(self):
         self.test_iteration = 0
 
         row_indices = np.arange(shared_info["holdout_questions"].shape[0])
-        test_indices = np.random.choice(row_indices, shared_info['number_test'], replace=False)
+        test_indices = np.random.choice(row_indices, shared_info['number_test_questions'], replace=False)
         self.test_sample = shared_info["holdout_questions"].iloc[test_indices]
         self.test_sample = pd.concat(
             [self.test_sample,
              pd.DataFrame([{'p_x': np.nan, 'w_p': np.nan}])], 
              ignore_index=True)
-
-    def get_test_iteration(self):
-        return self.test_iteration
 
     def next_question_train(self, answer):
         """
@@ -209,9 +217,11 @@ class FSE:
         return self.z, self.p_x
 
     def next_question(self, answer):
+        self.check_finished()
+
         if self.getEpsilon() > 0.1:
             return self.next_question_train(answer)
         
-        elif self.test_iteration < shared_info['number_test']:
+        elif self.test_iteration < shared_info['number_test_questions']:
             return self.next_question_test(answer)
     
