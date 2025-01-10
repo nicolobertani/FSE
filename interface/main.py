@@ -28,7 +28,7 @@ new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}"
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 from PyQt5.QtGui import QFont
 from PyQt5 import QtCore, QtWidgets
-from backend.model_interface import FSE
+from backend.FSE_engine import FSE
 from backend.shared_info import *
 from backend.styling import *
 
