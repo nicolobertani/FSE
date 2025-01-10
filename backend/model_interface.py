@@ -84,23 +84,6 @@ class FSE:
     def getSimAnswers(self):
         return self.sim_answers
 
-    def setDirectoryFileName(self, directory, fileName):
-        """
-        Sets the directory and file name
-        :param directory: directory in which to save the results in
-        :param fileName: name of the file
-        """
-        self.directory = directory
-        self.file_name = str(fileName) + ".csv"
-
-    def saveSimAnswers(self):
-        """
-        Saves the results in sim_answers to a .csv file
-        :return:
-        """
-        self.fileNameToSave = os.path.join(self.directory,self.file_name)
-        self.sim_answers.dropna(subset=['s']).to_csv(self.fileNameToSave, index=False)
-
     def calculate(self, answer):
         """
         Calculates the next values for the lottery after the user's answer

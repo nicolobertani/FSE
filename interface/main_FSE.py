@@ -3,6 +3,7 @@ import os
 import re
 import random
 import datetime
+import json
 import pandas as pd
 
 
@@ -50,22 +51,28 @@ class MyWindow(QMainWindow):
         self.setGeometry(self.xpos, self.ypos, self.width, self.height)
         self.setWindowTitle("Lottery Check")
 
-        # Set empty attributes
-        self.code = None
-        self.directory = None
-        self.timestamps = pd.DataFrame(
-            dict(zip(['step', 'timestamp'], [['started'], [datetime.datetime.now()]]))
-        )
-
-
         # Initialize the model and the first question
         self.model = FSE()
         self.sure_amount = self.model.getSimAnswers().iloc[-1]['z']
         self.proba = self.model.getSimAnswers().iloc[-1]['p_x']
         
+        # Set timer
+        self.timestamps = pd.DataFrame(
+            dict(zip(['step', 'timestamp'], [['started'], [datetime.datetime.now()]]))
+        )
+        self.saveProgress()
+
         # Initialize the UI
         self.initUI()
         
+    def saveProgress(self):
+        # Save timestamps and model answers to a JSON file
+        results = {
+            "timestamps": self.timestamps.to_dict(orient='records'),
+            "sim_answers": self.model.getSimAnswers().dropna(subset=['s']).to_dict(orient='records')
+        }
+        with open(os.path.join(results_folder, f"{new_file_name}_results.json"), 'w') as f:
+            json.dump(results, f, indent=4, default=str)
 
     def initUI(self):
         """
@@ -121,6 +128,7 @@ class MyWindow(QMainWindow):
             [self.timestamps, 
              pd.DataFrame([{'step': 'practice_question', 'timestamp': datetime.datetime.now()}])], 
              ignore_index=True)
+        self.saveProgress()
 
         # Create the practice sentence
         self.practice_sentence = QtWidgets.QLabel("This is a practice question.")
@@ -184,6 +192,7 @@ class MyWindow(QMainWindow):
             [self.timestamps, 
              pd.DataFrame([{'step': 'comprehension_question', 'timestamp': datetime.datetime.now()}])], 
              ignore_index=True)
+        self.saveProgress()
 
         self.comprehension_label = QtWidgets.QLabel("Comprehension questions")
         self.comprehension_label.setFont(fontTitle)
@@ -306,6 +315,7 @@ class MyWindow(QMainWindow):
             [self.timestamps, 
              pd.DataFrame([{'step': 'proceed_to_exp', 'timestamp': datetime.datetime.now()}])], 
              ignore_index=True)
+        self.saveProgress()
 
         self.practice_label = QtWidgets.QLabel("The experiment is about to start!")
         self.practice_label.setFont(fontTitle)
@@ -350,6 +360,7 @@ class MyWindow(QMainWindow):
             [self.timestamps, 
              pd.DataFrame([{'step': 'start_exp', 'timestamp': datetime.datetime.now()}])], 
              ignore_index=True)
+        self.saveProgress()
 
         self.sentence = QtWidgets.QLabel()
         self.sentence.setFont(fontTitle)
@@ -394,16 +405,6 @@ class MyWindow(QMainWindow):
         self.confirm.setText(experiment_text["confirm"])
         self.confirm.setStyleSheet(buttonProceed)
         self.confirm.setFont(fontProceed)
-
-    def setCodeDirectory(self, code, directory):
-        """
-        Sets the values for the directory and the code
-        :param code: the code of the user
-        :param directory: directory to save the results in
-        """
-        self.code = code
-        self.directory = directory
-        self.model.setDirectoryFileName(directory, code)
 
     def updateTextButtons(self):
         """
@@ -495,7 +496,7 @@ class MyWindow(QMainWindow):
             self.updateText()
             self.updateTextButtons()
             self.resetButtons()
-            self.model.saveSimAnswers()
+            self.saveProgress()
             if not self.model.getEpsilon() > 0.1:
                 self.finished()
 
@@ -520,13 +521,11 @@ class MyWindow(QMainWindow):
         messageWidget = QWidget()
         messageWidget.setLayout(messageLayout)
         self.setCentralWidget(messageWidget)
-        print(self.timestamps)
-        print(self.model.getSimAnswers())
-
+        self.saveProgress()
+    
 def __main__():
     app = QApplication(sys.argv) # always start with
     win = MyWindow()
-    win.setCodeDirectory(new_file_name, results_folder)
     win.show()
     # win.showFullScreen()
     sys.exit(app.exec_())
