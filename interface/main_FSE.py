@@ -20,7 +20,7 @@ if os.path.exists(results_folder) and os.path.isdir(results_folder):
     result_files = os.listdir(results_folder)
 else:
     raise FileNotFoundError("Results folder does not exist.")
-filtered_files = [f for f in result_files if re.match(rf'^{experimental_design}_\d{{4}}\.csv$', f)]
+filtered_files = [f for f in result_files if re.match(rf'^{experimental_design}_\d{{4}}\.json$', f)]
 numeric_parts = [re.search(r'\d{4}', f).group() for f in filtered_files]
 max_numeric_part = max(map(int, numeric_parts)) if numeric_parts else 0
 new_file_name = f"{experimental_design}_{max_numeric_part + 1:04d}"
@@ -71,7 +71,7 @@ class MyWindow(QMainWindow):
             "timestamps": self.timestamps.to_dict(orient='records'),
             "sim_answers": self.model.getSimAnswers().dropna(subset=['s']).to_dict(orient='records')
         }
-        with open(os.path.join(results_folder, f"{new_file_name}_results.json"), 'w') as f:
+        with open(os.path.join(results_folder, f"{new_file_name}.json"), 'w') as f:
             json.dump(results, f, indent=4, default=str)
 
     def initUI(self):
