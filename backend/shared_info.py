@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 shared_info = {
     "x" : 18,
@@ -6,7 +7,12 @@ shared_info = {
     "step_p" : 0.1,
     "step_z" : 0.5,
     "practice_p" : 0.6,
-    "practice_z" : 5
+    "practice_z" : 5,
+    "holdout_questions" : pd.DataFrame({
+        "p_x" : [.01, .05, .10, .25, .4, .5, .6, .75, .9, .95, .99],
+        "w_p" : [.01, .05, .10, .25, .4, .5, .6, .75, .9, .95, .99]
+    }),
+    "number_test" : 5,
 }
 
 shared_info.update({
@@ -14,8 +20,8 @@ shared_info.update({
     'set_z' : np.arange(shared_info['y'], shared_info["x"], shared_info["step_z"])[1:]
 })
 
-currency = "£"
-fixed_payment = "2.5"
+currency = "$"
+fixed_payment = "3"
 
 # Set question text
 experiment_text = {

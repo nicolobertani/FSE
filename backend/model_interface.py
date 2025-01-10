@@ -46,13 +46,14 @@ class FSE:
         # initialization for question dataframe
         starting_data = [[self.iteration + 1], [starting_p_x], [starting_z], [(starting_z - shared_info["y"]) / (shared_info["x"] - shared_info["y"])], [None], [None]]
         colnames = ['q_n', 'p_x', 'z', 'w_p', 's', 's_tilde']
-        self.sim_answers = pd.DataFrame(
+        self.train_answers = pd.DataFrame(
             dict(zip(colnames, starting_data))
             ) 
+        self.test_answers = pd.DataFrame(columns=colnames)
         
         # first question
-        self.z = self.sim_answers.loc[self.iteration, "z"]
-        self.p_w = self.sim_answers.loc[self.iteration, "p_x"]
+        self.z = self.train_answers.loc[self.iteration, "z"]
+        self.p_w = self.train_answers.loc[self.iteration, "p_x"]
 
         # initialization for LPs
         self.epsilon = np.inf
@@ -62,8 +63,10 @@ class FSE:
         self.lower_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True)[FSE.M-1]
         self.upper_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True)[0]
         self.D = self.upper_bound - self.lower_bound
-        # create storage for bounds
-        self.bound_list = [np.vstack((self.lower_bound, self.upper_bound))]
+
+        # draw test sample
+        self.draw_test_sample()
+        
 
     def get_closest_z(self, z):
         """
@@ -83,33 +86,43 @@ class FSE:
     def getEpsilon(self):
         return self.epsilon
 
-    def getBoundlist(self):
-        return self.bound_list
+    def get_train_answers(self):
+        return self.train_answers
 
-    def getSimAnswers(self):
-        return self.sim_answers
+    def get_test_answers(self):
+        return self.test_answers
 
-    def calculate(self, answer):
+    def draw_test_sample(self):
+        self.test_iteration = 0
+
+        row_indices = np.arange(shared_info["holdout_questions"].shape[0])
+        test_indices = np.random.choice(row_indices, shared_info['number_test'], replace=False)
+        self.test_sample = shared_info["holdout_questions"].iloc[test_indices]
+        self.test_sample = pd.concat(
+            [self.test_sample,
+             pd.DataFrame([{'p_x': np.nan, 'w_p': np.nan}])], 
+             ignore_index=True)
+        print(self.test_sample)
+
+    def get_test_iteration(self):
+        return self.test_iteration
+
+    def next_question_train(self, answer):
         """
         Calculates the next values for the lottery after the user's answer
-        :param
-            - answer: the user's answer
-        :return:
-            - self.z: sure value
-            - self.p_w: weighted probability
         """
 
         # asks the question and records the truth
-        self.sim_answers.loc[self.iteration, "s"] = int(answer)
-        self.sim_answers.loc[self.iteration, "s_tilde"] = 1 if self.sim_answers.loc[self.iteration, "s"] else -1
+        self.train_answers.loc[self.iteration, "s"] = int(answer)
+        self.train_answers.loc[self.iteration, "s_tilde"] = 1 if self.train_answers.loc[self.iteration, "s"] else -1
 
         # record the current time
-        self.sim_answers.loc[self.iteration, "timestamp"] = datetime.datetime.now()
+        self.train_answers.loc[self.iteration, "timestamp"] = datetime.datetime.now()
 
         # prepare parameters for LPs
-        A2 = self.sim_answers["s_tilde"].values * I_spline(x = self.sim_answers["p_x"], k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True) # question part
+        A2 = self.train_answers["s_tilde"].values * I_spline(x = self.train_answers["p_x"], k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True) # question part
         A = np.column_stack((self.A1, A2)).T
-        b = np.concatenate((np.zeros(FSE.M), self.sim_answers["s_tilde"].values * self.sim_answers["w_p"].values))
+        b = np.concatenate((np.zeros(FSE.M), self.train_answers["s_tilde"].values * self.train_answers["w_p"].values))
 
         # update bounds
         for i, local_x in enumerate(self.set_p):
@@ -140,34 +153,72 @@ class FSE:
         self.D = np.round(self.upper_bound - self.lower_bound, 6)
         self.epsilon = np.round(np.max(self.D), 4)
 
-        # store bounds
-        self.bound_list.append(np.vstack((self.lower_bound, self.upper_bound)))
+        if self.epsilon > .1:
 
-        # update iteration
-        self.iteration += 1
-        self.sim_answers.loc[self.iteration, "q_n"] = self.iteration + 1
+            # update iteration
+            self.iteration += 1
+            self.train_answers.loc[self.iteration, "q_n"] = self.iteration + 1
 
-        # find next p
-        candidates = self.D == np.max(self.D)
-        if np.sum(candidates) == 1:  # if one point exists
-            self.sim_answers.loc[self.iteration, "p_x"] = self.set_p[candidates]
-        else:  # if multiple points exist
-            warnings.warn('Warning: multiple optimal bisection points')
-            abs_distance_from_middle = np.abs(self.set_p[candidates] - 0.5)
-            self.sim_answers.loc[self.iteration, "p_x"] = np.array(self.set_p[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][0]
+            # find next p
+            candidates = self.D == np.max(self.D)
+            if np.sum(candidates) == 1:  # if one point exists
+                self.train_answers.loc[self.iteration, "p_x"] = self.set_p[candidates]
+            else:  # if multiple points exist
+                warnings.warn('Warning: multiple optimal bisection points')
+                abs_distance_from_middle = np.abs(self.set_p[candidates] - 0.5)
+                self.train_answers.loc[self.iteration, "p_x"] = np.array(self.set_p[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][0]
 
-        # compute next z and w.p
-        w_p_t = (self.upper_bound + self.lower_bound)[self.set_p == self.sim_answers.loc[self.iteration, "p_x"]] / 2 # p_w wiing lottery
-        candidate_z_t = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"] # z is sure amount
-        if (self.set_z is None):
-            self.sim_answers.loc[self.iteration, "z"] = candidate_z_t
-            self.sim_answers.loc[self.iteration, "w_p"] = w_p_t
+            # compute next z and w.p
+            w_p_t = (self.upper_bound + self.lower_bound)[self.set_p == self.train_answers.loc[self.iteration, "p_x"]] / 2 # p_w wiing lottery
+            candidate_z_t = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"] # z is sure amount
+            if (self.set_z is None):
+                self.train_answers.loc[self.iteration, "z"] = candidate_z_t
+                self.train_answers.loc[self.iteration, "w_p"] = w_p_t
+            else:
+                self.train_answers.loc[self.iteration, "z"] = self.get_closest_z(candidate_z_t)
+                self.train_answers.loc[self.iteration, "w_p"] = (self.train_answers.loc[self.iteration, "z"] - shared_info["y"]) / (shared_info["x"] - shared_info["y"])
+
+            # saves z and p_w
+            self.z = self.train_answers.loc[self.iteration, "z"]
+            self.p_x = self.train_answers.loc[self.iteration, "p_x"]
+
         else:
-            self.sim_answers.loc[self.iteration, "z"] = self.get_closest_z(candidate_z_t)
-            self.sim_answers.loc[self.iteration, "w_p"] = (self.sim_answers.loc[self.iteration, "z"] - shared_info["y"]) / (shared_info["x"] - shared_info["y"])
-
-        # saves z and p_w
-        self.z = self.sim_answers.loc[self.iteration, "z"]
-        self.p_x = self.sim_answers.loc[self.iteration, "p_x"]
+            
+            self.test_answers.loc[self.test_iteration, "q_n"] = self.test_iteration + 1
+            self.p_x = self.test_sample.iloc[self.test_iteration].loc["p_x"]
+            self.test_answers.loc[self.test_iteration, "p_x"] = self.p_x
+            w_p_t = self.test_sample.iloc[self.test_iteration].loc["w_p"]
+            self.z = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"]
+            self.test_answers.loc[self.test_iteration, "z"] = self.z
+            self.test_answers.loc[self.test_iteration, "w_p"] = w_p_t
 
         return self.z, self.p_x
+
+    def next_question_test(self, answer):
+
+        # asks the question and records the truth
+        self.test_answers.loc[self.test_iteration, "s"] = int(answer)
+        self.test_answers.loc[self.test_iteration, "s_tilde"] = 1 if self.test_answers.loc[self.test_iteration, "s"] else -1
+
+        # record the current time
+        self.test_answers.loc[self.test_iteration, "timestamp"] = datetime.datetime.now()
+
+        self.test_iteration += 1
+
+        self.test_answers.loc[self.test_iteration, "q_n"] = self.test_iteration + 1
+        self.p_x = self.test_sample.iloc[self.test_iteration].loc["p_x"]
+        self.test_answers.loc[self.test_iteration, "p_x"] = self.p_x
+        w_p_t = self.test_sample.iloc[self.test_iteration].loc["w_p"]
+        self.z = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"]
+        self.test_answers.loc[self.test_iteration, "z"] = self.z
+        self.test_answers.loc[self.test_iteration, "w_p"] = w_p_t
+
+        return self.z, self.p_x
+
+    def next_question(self, answer):
+        if self.getEpsilon() > 0.1:
+            return self.next_question_train(answer)
+        
+        elif self.test_iteration < shared_info['number_test']:
+            return self.next_question_test(answer)
+    

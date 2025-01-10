@@ -52,8 +52,8 @@ class MyWindow(QMainWindow):
 
         # Initialize the model and the first question
         self.model = FSE(set_z=shared_info["set_z"])
-        self.sure_amount = self.model.getSimAnswers().iloc[-1]['z']
-        self.proba = self.model.getSimAnswers().iloc[-1]['p_x']
+        self.sure_amount = self.model.get_train_answers().iloc[-1]['z']
+        self.proba = self.model.get_train_answers().iloc[-1]['p_x']
         
         # Set timer
         self.timestamps = pd.DataFrame(
@@ -70,7 +70,8 @@ class MyWindow(QMainWindow):
         results = {
             "timestamps": self.timestamps.to_dict(orient='records'),
             "comprehension_results": self.comprehension_results,
-            "sim_answers": self.model.getSimAnswers().dropna(subset=['s']).to_dict(orient='records')
+            "train_answers": self.model.get_train_answers().dropna(subset=['s']).to_dict(orient='records'),
+            "test_answers": self.model.get_test_answers().dropna(subset=['s']).to_dict(orient='records')
         }
         with open(os.path.join(results_folder, f"{new_file_name}.json"), 'w') as f:
             json.dump(results, f, indent=4, default=str)
@@ -434,8 +435,9 @@ class MyWindow(QMainWindow):
         """
         Updates the different texts
         """
+        question_number = self.model.get_train_answers().shape[0] + self.model.get_test_answers().shape[0]
         self.sentence.setText(experiment_text["sentence_string"].format(
-            f"{self.model.getSimAnswers().shape[0]:.0f}"
+            f"{question_number:.0f}"
         ))
         lottery_text = experiment_text["sentence_lottery"].format(
             f"{experiment_text['amount_currency']}{shared_info['x']}",
@@ -505,16 +507,20 @@ class MyWindow(QMainWindow):
         Handles the states when the choice has been confirmed
         """
         if self.option2Clicked or self.option1Clicked: # don't do anything if no option has been clicked
+            
             if self.option1Clicked:
-                self.sure_amount, self.proba = self.model.calculate(self.question_order[0])
+                self.sure_amount, self.proba = self.model.next_question(self.question_order[0])
             else:
-                self.sure_amount, self.proba = self.model.calculate(self.question_order[1])
+                self.sure_amount, self.proba = self.model.next_question(self.question_order[1])
+
             self.updateText()
             self.updateTextButtons()
             self.resetButtons()
             self.saveProgress()
-            if not self.model.getEpsilon() > 0.1:
+
+            if (not self.model.getEpsilon() > 0.1) and (self.model.get_test_iteration() == shared_info['number_test']):
                 self.finished()
+        
         else:
             QtWidgets.QMessageBox.warning(self, "Incomplete", "Please select an option before confirming.")
 
