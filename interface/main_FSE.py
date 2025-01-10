@@ -2,6 +2,9 @@ import sys
 import os
 import re
 import random
+import datetime
+import pandas as pd
+
 
 # define the path to the folder
 file_path = os.path.abspath(__file__)
@@ -50,6 +53,10 @@ class MyWindow(QMainWindow):
         # Set empty attributes
         self.code = None
         self.directory = None
+        self.timestamps = pd.DataFrame(
+            dict(zip(['step', 'timestamp'], [['started'], [datetime.datetime.now()]]))
+        )
+
 
         # Initialize the model and the first question
         self.model = FSE()
@@ -109,6 +116,13 @@ class MyWindow(QMainWindow):
         Sets up the practice question screen with the same structure as the question screen,
         but the buttons do not interact with the model.
         """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'practice_question', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+
+        # Create the practice sentence
         self.practice_sentence = QtWidgets.QLabel("This is a practice question.")
         self.practice_sentence.setFont(fontTitle)
         self.practice_sentence.setAlignment(QtCore.Qt.AlignCenter)
@@ -165,6 +179,12 @@ class MyWindow(QMainWindow):
         """
         Sets up the comprehension screen.
         """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'comprehension_question', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+
         self.comprehension_label = QtWidgets.QLabel("Comprehension questions")
         self.comprehension_label.setFont(fontTitle)
         self.comprehension_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -281,6 +301,12 @@ class MyWindow(QMainWindow):
         """
         This screen introduces the experiment
         """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'proceed_to_exp', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+
         self.practice_label = QtWidgets.QLabel("The experiment is about to start!")
         self.practice_label.setFont(fontTitle)
         self.practice_label.setAlignment(QtCore.Qt.AlignCenter)
@@ -319,6 +345,12 @@ class MyWindow(QMainWindow):
         """
         Sets up the question screen
         """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'start_exp', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+
         self.sentence = QtWidgets.QLabel()
         self.sentence.setFont(fontTitle)
         
@@ -471,6 +503,12 @@ class MyWindow(QMainWindow):
         """
         Cleans the main window and shows end message
         """
+        # Set the timer
+        self.timestamps = pd.concat(
+            [self.timestamps, 
+             pd.DataFrame([{'step': 'done', 'timestamp': datetime.datetime.now()}])], 
+             ignore_index=True)
+
         centralWidget = self.centralWidget()
         if centralWidget is not None:
             centralWidget.deleteLater()
@@ -482,6 +520,7 @@ class MyWindow(QMainWindow):
         messageWidget = QWidget()
         messageWidget.setLayout(messageLayout)
         self.setCentralWidget(messageWidget)
+        print(self.timestamps)
         print(self.model.getSimAnswers())
 
 def __main__():
