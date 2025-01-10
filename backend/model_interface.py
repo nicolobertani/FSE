@@ -32,14 +32,15 @@ class FSE:
     def __init__(self, 
                  starting_p_x = .9, 
                  starting_z = (shared_info["x"] + shared_info["y"]) / 2,
-                 set_p = shared_info["set_p"]
+                 set_p = shared_info["set_p"],
+                 set_z = None
                  ):
         """
         Initiates the attributes
         """
         # questioning ---------------------------------------------------------------
         self.set_p = set_p
-        self.file_name = None
+        self.set_z = set_z
         self.iteration = 0
 
         # initialization for question dataframe
@@ -63,6 +64,21 @@ class FSE:
         self.D = self.upper_bound - self.lower_bound
         # create storage for bounds
         self.bound_list = [np.vstack((self.lower_bound, self.upper_bound))]
+
+    def get_closest_z(self, z):
+        """
+        Returns the closest bisection point in the set z
+        """
+        distances = np.abs(np.array(self.set_z) - z)
+        closest_indices = np.where(distances == np.min(distances))[0]
+        closest_z_values = np.array(self.set_z)[closest_indices]
+        
+        if len(closest_z_values) > 1:
+            closest_z = np.random.choice(closest_z_values)
+        else:
+            closest_z = closest_z_values[0]
+        
+        return closest_z
 
     def getEpsilon(self):
         return self.epsilon
@@ -122,7 +138,7 @@ class FSE:
 
         # calculate max difference based on updated bounds
         self.D = np.round(self.upper_bound - self.lower_bound, 6)
-        self.epsilon = np.max(self.D)
+        self.epsilon = np.round(np.max(self.D), 4)
 
         # store bounds
         self.bound_list.append(np.vstack((self.lower_bound, self.upper_bound)))
@@ -142,8 +158,13 @@ class FSE:
 
         # compute next z and w.p
         w_p_t = (self.upper_bound + self.lower_bound)[self.set_p == self.sim_answers.loc[self.iteration, "p_x"]] / 2 # p_w wiing lottery
-        self.sim_answers.loc[self.iteration, "z"] = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"] # z is sure amount
-        self.sim_answers.loc[self.iteration, "w_p"] = w_p_t
+        candidate_z_t = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"] # z is sure amount
+        if (self.set_z is None):
+            self.sim_answers.loc[self.iteration, "z"] = candidate_z_t
+            self.sim_answers.loc[self.iteration, "w_p"] = w_p_t
+        else:
+            self.sim_answers.loc[self.iteration, "z"] = self.get_closest_z(candidate_z_t)
+            self.sim_answers.loc[self.iteration, "w_p"] = (self.sim_answers.loc[self.iteration, "z"] - shared_info["y"]) / (shared_info["x"] - shared_info["y"])
 
         # saves z and p_w
         self.z = self.sim_answers.loc[self.iteration, "z"]

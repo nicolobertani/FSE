@@ -51,7 +51,7 @@ class MyWindow(QMainWindow):
         self.setWindowTitle("Lottery Check")
 
         # Initialize the model and the first question
-        self.model = FSE()
+        self.model = FSE(set_z=shared_info["set_z"])
         self.sure_amount = self.model.getSimAnswers().iloc[-1]['z']
         self.proba = self.model.getSimAnswers().iloc[-1]['p_x']
         
