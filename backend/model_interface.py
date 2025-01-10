@@ -1,21 +1,16 @@
-# Author: Mathieu Leng
-# Date: 2023
-# version 1.0
-
 import os
 import sys
 import datetime
+import warnings
+import numpy as np
+import pandas as pd
+import scipy.optimize as opt
 
 # define the path to the folder
 file_path = os.path.abspath(__file__)
 folder_path = os.path.dirname(file_path)
 sys.path.insert(0, folder_path) 
 
-
-import warnings
-import numpy as np
-import pandas as pd
-import scipy.optimize as opt
 from I_spline_M_spline import I_spline
 from shared_info import shared_info
 
@@ -60,8 +55,8 @@ class FSE:
         self.A1 = np.zeros((FSE.M, FSE.M))
         np.fill_diagonal(self.A1, -1)
 
-        self.lower_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True)[FSE.M-1]
-        self.upper_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True)[0]
+        self.lower_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=FSE.CHOSEN_XI, individual=True)[FSE.M-1]
+        self.upper_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=FSE.CHOSEN_XI, individual=True)[0]
         self.D = self.upper_bound - self.lower_bound
 
         # draw test sample
@@ -102,7 +97,6 @@ class FSE:
             [self.test_sample,
              pd.DataFrame([{'p_x': np.nan, 'w_p': np.nan}])], 
              ignore_index=True)
-        print(self.test_sample)
 
     def get_test_iteration(self):
         return self.test_iteration
@@ -111,7 +105,6 @@ class FSE:
         """
         Calculates the next values for the lottery after the user's answer
         """
-
         # asks the question and records the truth
         self.train_answers.loc[self.iteration, "s"] = int(answer)
         self.train_answers.loc[self.iteration, "s_tilde"] = 1 if self.train_answers.loc[self.iteration, "s"] else -1
@@ -120,7 +113,7 @@ class FSE:
         self.train_answers.loc[self.iteration, "timestamp"] = datetime.datetime.now()
 
         # prepare parameters for LPs
-        A2 = self.train_answers["s_tilde"].values * I_spline(x = self.train_answers["p_x"], k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True) # question part
+        A2 = self.train_answers["s_tilde"].values * I_spline(x = self.train_answers["p_x"], k=FSE.ORDER, interior_knots=FSE.CHOSEN_XI, individual=True) # question part
         A = np.column_stack((self.A1, A2)).T
         b = np.concatenate((np.zeros(FSE.M), self.train_answers["s_tilde"].values * self.train_answers["w_p"].values))
 
@@ -128,7 +121,7 @@ class FSE:
         for i, local_x in enumerate(self.set_p):
 
             c = np.array(
-                I_spline(x = local_x, k = 3, interior_knots = self.CHOSEN_XI, individual = True)
+                I_spline(x = local_x, k = 3, interior_knots = FSE.CHOSEN_XI, individual = True)
             )
 
             min_problem = opt.linprog(
