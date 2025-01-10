@@ -21,35 +21,24 @@ from shared_info import shared_info
 
 class FSE:
     """
-    The Model class is responsible for the model part of the project.
-
-    Attributes:
-        - file_name: name of the file
-        - iteration: number of iterations occured. One iteration is one choice.
-        - sim_answers: dataframe containing calculated results such as p_x, z, w_p, s, and s_tilde
-        - epsilon: biggest gap between the upper- and lowerbound
-        - A1: matrix
-        - lower_bound: value of the lower bound
-        - upper_bound: value of the upper bound
-        - D: gap between lower and upper bound
-        - bound_list: list of bounds
+    The FSE class is responsible for integrating FSE into main.
     """
     
     ##### CONSTANTS
-    order = 3
-    chosen_xi = [.1, .9]
-    m = 5
+    ORDER = 3
+    CHOSEN_XI = [.1, .9]
+    M = 5
     
     def __init__(self, 
                  starting_p_x = .9, 
                  starting_z = (shared_info["x"] + shared_info["y"]) / 2,
-                 set_x = np.arange(0.01, 1, 0.01)
+                 set_p = shared_info["set_p"]
                  ):
         """
         Initiates the attributes
         """
         # questioning ---------------------------------------------------------------
-        self.set_x = set_x
+        self.set_p = set_p
         self.file_name = None
         self.iteration = 0
 
@@ -66,11 +55,11 @@ class FSE:
 
         # initialization for LPs
         self.epsilon = np.inf
-        self.A1 = np.zeros((self.m, self.m))
+        self.A1 = np.zeros((FSE.M, FSE.M))
         np.fill_diagonal(self.A1, -1)
 
-        self.lower_bound = I_spline(x=self.set_x, k=FSE.order, interior_knots=self.chosen_xi, individual=True)[self.m-1]
-        self.upper_bound = I_spline(x=self.set_x, k=FSE.order, interior_knots=self.chosen_xi, individual=True)[0]
+        self.lower_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True)[FSE.M-1]
+        self.upper_bound = I_spline(x=self.set_p, k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True)[0]
         self.D = self.upper_bound - self.lower_bound
         # create storage for bounds
         self.bound_list = [np.vstack((self.lower_bound, self.upper_bound))]
@@ -102,22 +91,22 @@ class FSE:
         self.sim_answers.loc[self.iteration, "timestamp"] = datetime.datetime.now()
 
         # prepare parameters for LPs
-        A2 = self.sim_answers["s_tilde"].values * I_spline(x = self.sim_answers["p_x"], k=FSE.order, interior_knots=self.chosen_xi, individual=True) # question part
+        A2 = self.sim_answers["s_tilde"].values * I_spline(x = self.sim_answers["p_x"], k=FSE.ORDER, interior_knots=self.CHOSEN_XI, individual=True) # question part
         A = np.column_stack((self.A1, A2)).T
-        b = np.concatenate((np.zeros(self.m), self.sim_answers["s_tilde"].values * self.sim_answers["w_p"].values))
+        b = np.concatenate((np.zeros(FSE.M), self.sim_answers["s_tilde"].values * self.sim_answers["w_p"].values))
 
         # update bounds
-        for i, local_x in enumerate(self.set_x):
+        for i, local_x in enumerate(self.set_p):
 
             c = np.array(
-                I_spline(x = local_x, k = 3, interior_knots = self.chosen_xi, individual = True)
+                I_spline(x = local_x, k = 3, interior_knots = self.CHOSEN_XI, individual = True)
             )
 
             min_problem = opt.linprog(
                 c = c,
                 A_ub = A,
                 b_ub = b,
-                A_eq = np.array([np.array([1] * self.m)]),
+                A_eq = np.array([np.array([1] * FSE.M)]),
                 b_eq = np.array([1])
             )
             self.lower_bound[i] = np.dot(min_problem.x, c)
@@ -126,7 +115,7 @@ class FSE:
                 c = -c, # for maximization
                 A_ub = A,
                 b_ub = b,
-                A_eq = np.array([np.array([1] * self.m)]),
+                A_eq = np.array([np.array([1] * FSE.M)]),
                 b_eq = np.array([1])
             )
             self.upper_bound[i] = np.dot(max_problem.x, c)
@@ -145,14 +134,14 @@ class FSE:
         # find next p
         candidates = self.D == np.max(self.D)
         if np.sum(candidates) == 1:  # if one point exists
-            self.sim_answers.loc[self.iteration, "p_x"] = self.set_x[candidates]
+            self.sim_answers.loc[self.iteration, "p_x"] = self.set_p[candidates]
         else:  # if multiple points exist
             warnings.warn('Warning: multiple optimal bisection points')
-            abs_distance_from_middle = np.abs(self.set_x[candidates] - 0.5)
-            self.sim_answers.loc[self.iteration, "p_x"] = np.array(self.set_x[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][0]
+            abs_distance_from_middle = np.abs(self.set_p[candidates] - 0.5)
+            self.sim_answers.loc[self.iteration, "p_x"] = np.array(self.set_p[candidates])[abs_distance_from_middle == np.max(abs_distance_from_middle)][0]
 
         # compute next z and w.p
-        w_p_t = (self.upper_bound + self.lower_bound)[self.set_x == self.sim_answers.loc[self.iteration, "p_x"]] / 2 # p_w wiing lottery
+        w_p_t = (self.upper_bound + self.lower_bound)[self.set_p == self.sim_answers.loc[self.iteration, "p_x"]] / 2 # p_w wiing lottery
         self.sim_answers.loc[self.iteration, "z"] = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"] # z is sure amount
         self.sim_answers.loc[self.iteration, "w_p"] = w_p_t
 
