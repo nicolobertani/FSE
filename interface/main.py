@@ -50,6 +50,7 @@ from PyQt5.QtGui import QFont
 from PyQt5 import QtCore, QtWidgets
 from backend.FSE_engine import FSE
 from backend.bisection_engine import Bisection
+from backend.Bayesian_engine import BayesianLR
 from backend.shared_info import *
 from backend.styling import *
 
@@ -76,6 +77,8 @@ class MyWindow(QMainWindow):
             self.model = FSE(set_z=shared_info["set_z"])
         elif experimental_design.lower() == "bisection":
             self.model = Bisection()
+        elif experimental_design.lower() == "bayesian":
+            self.model = BayesianLR()
         else:
             raise ValueError(f"Invalid experiment name: {experimental_design}. Must be one of ['FSE', 'bisection'].")
         self.sure_amount = self.model.get_train_answers().iloc[-1]['z']
