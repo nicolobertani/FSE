@@ -1,3 +1,25 @@
+import argparse
+
+def validate_experiment_name(name):
+    valid_names = ["FSE", "bisection", "Bayesian"]
+    for vn in valid_names:
+        if name.lower() == vn.lower():
+            return vn
+    raise ValueError(f"Invalid experiment name: {name}. Must be one of {valid_names}.")
+
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Set name of the experimental design')
+parser.add_argument('experiment_name', type=str, nargs='?', default='FSE', help='Name of the experimental design')
+args = parser.parse_args()
+
+# Check the number of arguments
+if len(vars(args)) > 1:
+    raise ValueError("Too many arguments provided. Only 0 or 1 arguments are allowed.")
+
+# Validate and use the argument
+experimental_design = validate_experiment_name(args.experiment_name)
+print(experimental_design)
+
 import sys
 import os
 import re
@@ -6,7 +28,6 @@ import datetime
 import json
 import pandas as pd
 
-
 # define the path to the folder
 file_path = os.path.abspath(__file__)
 folder_path = os.path.dirname(file_path)
@@ -14,7 +35,6 @@ parent_folder_path = os.path.dirname(folder_path)
 sys.path.insert(0, parent_folder_path) 
 
 # define name of the file
-experimental_design = 'FSE'
 results_folder = os.path.join(parent_folder_path, 'results')
 if os.path.exists(results_folder) and os.path.isdir(results_folder):
     result_files = os.listdir(results_folder)
@@ -52,8 +72,12 @@ class MyWindow(QMainWindow):
         self.setWindowTitle("Lottery Check")
 
         # Initialize the model and the first question
-        # self.model = FSE(set_z=shared_info["set_z"])
-        self.model = Bisection()
+        if experimental_design.lower() == "fse":
+            self.model = FSE(set_z=shared_info["set_z"])
+        elif experimental_design.lower() == "bisection":
+            self.model = Bisection()
+        else:
+            raise ValueError(f"Invalid experiment name: {experimental_design}. Must be one of ['FSE', 'bisection'].")
         self.sure_amount = self.model.get_train_answers().iloc[-1]['z']
         self.proba = self.model.get_train_answers().iloc[-1]['p_x']
         
@@ -70,6 +94,8 @@ class MyWindow(QMainWindow):
     def saveProgress(self):
         # Save timestamps and model answers to a JSON file
         results = {
+            "experimental_design": experimental_design,
+            "number" : max_numeric_part + 1,
             "timestamps": self.timestamps.to_dict(orient='records'),
             "comprehension_results": self.comprehension_results,
             "train_answers": self.model.get_train_answers().dropna(subset=['s']).to_dict(orient='records'),
@@ -437,7 +463,8 @@ class MyWindow(QMainWindow):
         """
         Updates the different texts
         """
-        question_number = self.model.get_train_answers().shape[0] + self.model.get_test_answers().shape[0]
+        # question_number = self.model.get_train_answers().shape[0] + self.model.get_test_answers().shape[0]
+        question_number = self.model.get_iteration() + 1
         self.sentence.setText(experiment_text["sentence_string"].format(
             f"{question_number:.0f}"
         ))
