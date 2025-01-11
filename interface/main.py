@@ -29,6 +29,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHB
 from PyQt5.QtGui import QFont
 from PyQt5 import QtCore, QtWidgets
 from backend.FSE_engine import FSE
+from backend.bisection_engine import Bisection
 from backend.shared_info import *
 from backend.styling import *
 
@@ -51,7 +52,8 @@ class MyWindow(QMainWindow):
         self.setWindowTitle("Lottery Check")
 
         # Initialize the model and the first question
-        self.model = FSE(set_z=shared_info["set_z"])
+        # self.model = FSE(set_z=shared_info["set_z"])
+        self.model = Bisection()
         self.sure_amount = self.model.get_train_answers().iloc[-1]['z']
         self.proba = self.model.get_train_answers().iloc[-1]['p_x']
         
@@ -141,9 +143,9 @@ class MyWindow(QMainWindow):
         # Option 1
         self.practice_lottery_text = experiment_text["sentence_lottery"].format(
             f"{experiment_text['amount_currency']}{shared_info['x']}",
-            f"{shared_info['practice_p'] * 100:.0f}%",
+            f"{shared_info['practice_p'] * 100:.2f}".rstrip('0').rstrip('.') + "%",
             f"{experiment_text['amount_currency']}{shared_info['y']}",
-            f"{(1 - shared_info['practice_p']) * 100:.0f}%",
+            f"{(1 - shared_info['practice_p']) * 100:.2f}".rstrip('0').rstrip('.') + "%",
         )
         self.option1 = QtWidgets.QPushButton(self.practice_lottery_text)
         self.option1.setFont(fontButtons)
@@ -441,9 +443,9 @@ class MyWindow(QMainWindow):
         ))
         lottery_text = experiment_text["sentence_lottery"].format(
             f"{experiment_text['amount_currency']}{shared_info['x']}",
-            f"{self.proba * 100:.0f}%",
+            f"{self.proba * 100:.2f}".rstrip('0').rstrip('.') + "%",
             f"{experiment_text['amount_currency']}{shared_info['y']}",
-            f"{(1 - self.proba) * 100:.0f}%",
+            f"{(1 - self.proba) * 100:.2f}".rstrip('0').rstrip('.') + "%",
         )
         sure_amount_text = experiment_text["sentence_sure"].format(
             f"{experiment_text['amount_currency']}{self.sure_amount:.2f}".rstrip('0').rstrip('.')
@@ -518,7 +520,7 @@ class MyWindow(QMainWindow):
             self.resetButtons()
             self.saveProgress()
 
-            if (not self.model.getEpsilon() > 0.1) and (self.model.get_test_iteration() == shared_info['number_test']):
+            if self.model.get_finished():
                 self.finished()
         
         else:
