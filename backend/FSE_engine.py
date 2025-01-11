@@ -88,8 +88,8 @@ class FSE:
     def get_test_answers(self):
         return self.test_answers
     
-    def get_test_iteration(self):
-        return self.test_iteration
+    def get_iteration(self):
+        return self.iteration
 
     def check_finished(self):
         if (self.epsilon <= 0.1) and (self.test_iteration == (shared_info['number_test_questions'] - 1)):
@@ -154,10 +154,10 @@ class FSE:
         self.D = np.round(self.upper_bound - self.lower_bound, 6)
         self.epsilon = np.round(np.max(self.D), 4)
 
+        self.iteration += 1
         if self.epsilon > .1:
 
             # update iteration
-            self.iteration += 1
             self.train_answers.loc[self.iteration, "q_n"] = self.iteration + 1
 
             # find next p
@@ -204,6 +204,7 @@ class FSE:
         # record the current time
         self.test_answers.loc[self.test_iteration, "timestamp"] = datetime.datetime.now()
 
+        self.iteration += 1
         self.test_iteration += 1
 
         self.test_answers.loc[self.test_iteration, "q_n"] = self.test_iteration + 1
@@ -217,6 +218,8 @@ class FSE:
         return self.z, self.p_x
 
     def next_question(self, answer):
+
+        print(self.iteration, self.test_iteration)
         self.check_finished()
 
         if self.getEpsilon() > 0.1:
