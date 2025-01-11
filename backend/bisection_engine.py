@@ -86,10 +86,7 @@ class Bisection:
         self.iteration += 1
         if self.iteration < self.n_train_iterations:
 
-            # update iteration
-            self.train_answers.loc[self.iteration, "q_n"] = self.iteration + 1
-            self.train_answers.loc[self.iteration, "p_x"] = shared_info['set_p_bisection'][self.iteration // shared_info["number_bisection_steps"]]
-
+            # update bisection point
             if self.iteration % shared_info["number_bisection_steps"] == 0:
                 self.current_x = shared_info["x"]
                 self.current_y = shared_info["y"]
@@ -99,11 +96,15 @@ class Bisection:
                 else:
                     self.current_y = self.z
             
-            # saves z and p_x
-            self.train_answers.loc[self.iteration, "z"] = (self.current_x + self.current_y) / 2
+            # update p_x and z
+            self.p_x = shared_info['set_p_bisection'][self.iteration // shared_info["number_bisection_steps"]]
+            self.z = (self.current_x + self.current_y) / 2
+            
+            # record the values
+            self.train_answers.loc[self.iteration, "q_n"] = self.iteration + 1
+            self.train_answers.loc[self.iteration, "p_x"] = self.p_x
+            self.train_answers.loc[self.iteration, "z"] = self.z
             self.train_answers.loc[self.iteration, "w_p"] = (self.z - shared_info['y']) / (shared_info['x'] - shared_info['y'])
-            self.z = self.train_answers.loc[self.iteration, "z"]
-            self.p_x = self.train_answers.loc[self.iteration, "p_x"]
 
         else:
 
