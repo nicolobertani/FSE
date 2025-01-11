@@ -218,13 +218,10 @@ class FSE:
         return self.z, self.p_x
 
     def next_question(self, answer):
-
-        print(self.iteration, self.test_iteration)
         self.check_finished()
 
         if self.getEpsilon() > 0.1:
             return self.next_question_train(answer)
-        
         elif self.test_iteration < shared_info['number_test_questions']:
             return self.next_question_test(answer)
     

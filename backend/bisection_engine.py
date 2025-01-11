@@ -140,12 +140,9 @@ class Bisection:
         return self.z, self.p_x
 
     def next_question(self, answer):
-
-        print(self.iteration, self.test_iteration)
         self.check_finished()
     
         if self.iteration < self.n_train_iterations:
             return self.next_question_train(answer)
-        
         elif self.iteration < self.n_train_iterations + shared_info['number_test_questions']:
             return self.next_question_test(answer)
