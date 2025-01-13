@@ -14,8 +14,8 @@ for ii in range(len(robjects.r['question.list'])):
         for jj in range(len(robjects.r['question.list'][ii])):
             entry = {
                 'Q' : str(int(robjects.r['question.list'][ii][jj][0].rx2('Q')[0])) + '.' + str(jj+1),
-                'px' : np.array(robjects.r['question.list'][ii][jj][0].rx2('px')),
-                'wp' : np.array(robjects.r['question.list'][ii][jj][0].rx2('wp')),
+                'p_x' : np.array(robjects.r['question.list'][ii][jj][0].rx2('px')),
+                'w_p' : np.array(robjects.r['question.list'][ii][jj][0].rx2('wp')),
                 's' : np.array(robjects.r['question.list'][ii][jj][0].rx2('s'))[:-1],
             }
             ii_entries.append(entry)
