@@ -1,10 +1,10 @@
 import os
 import sys
 import datetime
+import json
 import numpy as np
 import pandas as pd
 import scipy.optimize as opt
-import rpy2.robjects as robjects
 
 # define the path to the folder
 file_path = os.path.abspath(__file__)
@@ -19,7 +19,7 @@ class BayesianLR:
     """
     
     def __init__(self, 
-                 sequence_file = "backend/Bayesian_sequence.Rdata",
+                 sequence_file = "backend/question_list.json",
                  n_train_iterations = 13,
                  ):
         """
@@ -30,15 +30,15 @@ class BayesianLR:
         self.n_train_iterations = n_train_iterations
         self.finished = False
 
-        # first question
-        # Load the RData file
-        robjects.r['load'](sequence_file)
-        # Extract the question list
-        self.question_list = robjects.r['question.list']
+        # Load the question list
+        with open(sequence_file, 'r') as json_file:
+            self.question_list = json.load(json_file)
 
-        next_q = self.sequence_next_q()
-        self.p_x = next_q.rx2('px')[0]
-        self.z = next_q.rx2('wp')[0] * (shared_info["x"] - shared_info["y"]) + shared_info["y"]
+        # first question
+        print(type(self.question_list))
+        print(self.question_list["1"])
+        self.p_x = self.question_list["1"][0]['p_x'][0]
+        self.z = self.question_list["1"][0]['w_p'][0] * (shared_info["x"] - shared_info["y"]) + shared_info["y"]
 
         # initialization for question dataframe
         starting_data = [[1], [self.p_x], [self.z], [(self.z - shared_info["y"]) / (shared_info["x"] - shared_info["y"])], [None], [None]]
@@ -79,30 +79,12 @@ class BayesianLR:
              ignore_index=True)
 
     def sequence_next_q(self, answer_vec=None):
-        if answer_vec is None:
-            answer_vec = []
+        data_next = self.question_list[str(len(answer_vec) + 1)]
+        which_answer_seq = np.where([np.all(np.array(sub_dict['s']) == np.array(answer_vec)) for sub_dict in data_next])[0]
+        next_q = data_next[int(which_answer_seq[0])]
+        print(next_q)
 
-        if len(answer_vec) == 0:
-            next_q_list = self.question_list[len(answer_vec) + 1]
-            next_q = next_q_list[0][0]
-
-        elif len(answer_vec) == 1:
-            answer_sequences = [
-                q.rx2('s')[0] for q_sublist in self.question_list[len(answer_vec)] for q in q_sublist
-            ]
-            which_answer_seq = np.where(np.array(answer_sequences) == answer_vec[0])[0]
-            next_q_list = self.question_list[len(answer_vec) + 1]
-            next_q = next_q_list[int(which_answer_seq[0])][0]
-
-        else:
-            answer_sequences = [
-                q.rx2('s') for q_sublist in self.question_list[len(answer_vec)] for q in q_sublist
-            ]
-            which_answer_seq = np.where([np.all(answer_seq == np.array(answer_vec)) for answer_seq in answer_sequences])[0]
-            next_q_list = self.question_list[len(answer_vec) + 1]
-            next_q = next_q_list[int(which_answer_seq[0])][0]
-
-        return next_q
+        return next_q['p_x'], next_q['w_p']
 
     def next_question_train(self, answer):
         """
@@ -120,10 +102,8 @@ class BayesianLR:
         if self.iteration < self.n_train_iterations:
 
             # update iteration
-            next_q = self.sequence_next_q(1 - self.train_answers['s']) # IMPORTANT: 0 IS CHOSE SURE FOR BAYESIAN SEQUENCING
-            px_value = next_q.rx2('px')
+            px_value, wp_value = self.sequence_next_q(1 - self.train_answers['s']) # IMPORTANT: 0 IS CHOSE SURE FOR BAYESIAN SEQUENCING
             self.p_x = px_value[-1] if np.array(px_value).size > 1 else px_value
-            wp_value = next_q.rx2('wp')
             w_p_t = wp_value[-1] if np.array(wp_value).size > 1 else wp_value
             self.z = w_p_t * (shared_info["x"] - shared_info["y"]) + shared_info["y"]
 
