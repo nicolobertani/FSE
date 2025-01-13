@@ -579,7 +579,7 @@ class MyWindow(QMainWindow):
         messageWidget.setLayout(messageLayout)
         self.setCentralWidget(messageWidget)
         self.saveProgress()
-        QtCore.QTimer.singleShot(5000, self.close)
+        # QtCore.QTimer.singleShot(5000, self.close)
     
 def __main__():
     app = QApplication(sys.argv) # always start with
