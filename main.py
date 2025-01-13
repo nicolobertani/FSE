@@ -28,18 +28,26 @@ import datetime
 import json
 import pandas as pd
 
-# define the path to the folder
-file_path = os.path.abspath(__file__)
-folder_path = os.path.dirname(file_path)
-parent_folder_path = os.path.dirname(folder_path)
-sys.path.insert(0, parent_folder_path) 
+# # define the path to the folder
+# file_path = os.path.abspath(__file__)
+# folder_path = os.path.dirname(file_path)
+# parent_folder_path = os.path.dirname(folder_path)
+# sys.path.insert(0, parent_folder_path) 
 
 # define name of the file
-results_folder = os.path.join(parent_folder_path, 'results')
-if os.path.exists(results_folder) and os.path.isdir(results_folder):
+results_folder = 'results'
+
+# Ensure the results folder exists
+if not os.path.exists(results_folder):
+    os.makedirs(results_folder)
+    print(f"Created missing folder: {results_folder}")
+
+# Check if the results folder is a directory
+if os.path.isdir(results_folder):
     result_files = os.listdir(results_folder)
 else:
-    raise FileNotFoundError("Results folder does not exist.")
+    raise FileNotFoundError(f"{results_folder} is not a directory.")
+
 filtered_files = [f for f in result_files if re.match(rf'^{experimental_design}_\d{{4}}\.json$', f)]
 numeric_parts = [re.search(r'\d{4}', f).group() for f in filtered_files]
 max_numeric_part = max(map(int, numeric_parts)) if numeric_parts else 0
