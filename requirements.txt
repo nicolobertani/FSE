@@ -2,4 +2,4 @@ numpy>=2.1, <2.2
 pandas>=2.2, <2.3
 scipy>=1.14, <1.15
 PyQt5>=5.15, <5.16
-opencv-python-headless==4.2.0.32
+opencv-python-headless>=4.10, <4.11
