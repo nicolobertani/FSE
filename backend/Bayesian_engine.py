@@ -1,7 +1,6 @@
 import os
 import sys
 import datetime
-import warnings
 import numpy as np
 import pandas as pd
 import scipy.optimize as opt
@@ -20,7 +19,7 @@ class BayesianLR:
     """
     
     def __init__(self, 
-                 sequence_file = "~/elicit/code/Bayesian_FSE/noisy_simulation/noisy_simulation-results/LR_luce_gamma-question_list-2_18-20250101-complete.Rdata",
+                 sequence_file = "backend/Bayesian_sequence.Rdata",
                  n_train_iterations = 13,
                  ):
         """
