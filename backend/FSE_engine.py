@@ -49,7 +49,7 @@ class FSE:
         
         # first question
         self.z = self.train_answers.loc[self.iteration, "z"]
-        self.p_w = self.train_answers.loc[self.iteration, "p_x"]
+        self.p_x = self.train_answers.loc[self.iteration, "p_x"]
 
         # initialization for LPs
         self.epsilon = np.inf
