@@ -1,44 +1,65 @@
 # Fast and Simple Adaptive Elicitations
+# Software for Lab Experiment
 
 ## Introduction
 
-The goal of this project is to offer a procedure for a laboratory experiment. The aim of the laboratory experiment is to measure decision models. 
-This code has been used for the paper: https://www.zbw.eu/econis-archiv/bitstream/11159/431240/1/EBP07639140X_0.pdf 
+This repo contains the code to implement the Fast and Simple Elicitation method of [Bertani, Diecidue, Perny, and Viappiani (WP)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3569625).
+More specifically, it provides Python code to locally run FSE and the competing methods described in Section 4.3.
+If you are interested in running these methods online, please refer to [this different repo](https://github.com/nicolobertani/FSE_online_horserace), where you can find implementations using otree and Python.
+
 
 ## Installation
 
-Python version: Python 3.7
+After cloning/forking, and assuming you have Python installed, ensure that you have the required packages by running:
 
-Packages needed and link for installation:
-  - pandas https://pandas.pydata.org/docs/getting_started/install.html 
-  - numpy https://www.edureka.co/blog/install-numpy/
-  - scipy https://scipy.org/install/
-  - PyQt5 https://pypi.org/project/PyQt5/
+```bash
+pip install -r requirements.txt
+```
+
 
 ## Usage
 
-### What to change to make it work 
+To launch the experiment, simply run:
 
-In order to make it work on your computer, it is needed that you change this line `sys.path.insert(0, '/Users/mathieuleng/PycharmProjects/FSE/backend')` by `sys.path.insert(0, 'your_path_to_the_project/FSE/backend')`.
-        
-### How to use 
+```bash
+python main.py
+```
 
-To launch the program, run **interface/main.py**. A first window should open, asking the user for a 4-digit code. Here, a window might open or not depending on **CodeEntryWindow.askDir**, asking for a directory to save the results in. If **askDir** is *False*, the results will be saved in the same directory as the code. The user confirms the code and the code is checked, if a file having this code already exists in the directory, the user will be asked for another code. If the code is correct, the first window closes and a second one opens. On this window, the user can see a sentence explaining the choice offered, 2 charts illustrating the odds, 2 buttons to make a choice, and finally a button to confirm. The user executes a sequence of choices until a result has been calculated and the application stops, thanking the user for its input.
+By default, the software executes FSE.
+The elicitation procedure can be specified to FSE, bisection or Bayesian elicitation as follows:
 
-The user's results are saved after each choice so there is no fear to have regarding crashes during the process. The results can then be found in the file having as its name the code provided by the user. 
+```bash
+python main.py FSE
+python main.py bisection
+python main.py Bayesian
+```
 
-### How to change 
+These commands are not case sensitive.
 
-The *constants* in the **model_interface.py** may be changed for different applications. The *initial values* in **main.py** can also be changed if needed.
-It is also possible to change the kind of code needed. By default, it is a 4-digit code but for certain applications, it might not be enough. It can be changed ***CodeEntryWindow.checkCode()***.
-It is also possible to choose whether the user can choose the directory to save the results, just change **CodeEntryWindow.askDir**. 
+Answers are recorded using an automatically generated progressive number 
+They are recorded progressively, meaning that the results of incomplete elicitations will not be lost.
 
-### Acknowledgments
 
-Acknowledgments to Pr. Nicolo Bertani without whom this project would not have been possible, he has been extremely helpful and a pedagogue.
+## Personalization
 
-### Contact
+The module [`backend/shared_info.py`](backend/shared_info.py) conveniently gathers and defines several experimental details that the researcher might wish to alter. 
+These include stimuli, participation fee, currency, and instructions. 
+Changes to this file are automatically reflected in the experimental interface.
 
-Mathieu Leng: 
-  - Linkedin: www.linkedin.com/in/mathieu-leng-b5556a1b1
-  - email: s-mleng@ucp.pt
+
+## Acknowledgments
+
+The initial version of this code was developed by my excellent student and research assistant [Mathieu Leng](www.linkedin.com/in/mathieu-leng-b5556a1b1) and I am thankful for his help.
+
+
+## License
+
+Copyright (C) 2023-present  Nicolò Bertani
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+
+This program is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchandability or fitness for a particular purpose.  See the GNU General Public License for more details.
+
+For the GNU General Public License see <https://www.gnu.org/licenses/>. You should also find a [copy](LICENSE) of this license in this repository.
+
+If you use this software, please cite the associated paper. You can find the [BibTeX citation](cite.bib) in this repository.
