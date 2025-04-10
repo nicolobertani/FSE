@@ -1,14 +1,14 @@
 # Fast and Simple Adaptive Elicitations
-# Software for Lab Experiment
+## Software for Laboratory Experiments
 
-## Introduction
+### Introduction
 
 This repo contains the code to implement the Fast and Simple Elicitation method of [Bertani, Diecidue, Perny, and Viappiani (WP)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3569625).
 More specifically, it provides Python code to locally run FSE and the competing methods described in Section 4.3.
 If you are interested in running these methods online, please refer to [this different repo](https://github.com/nicolobertani/FSE_online_horserace), where you can find implementations using otree and Python.
 
 
-## Installation
+### Installation
 
 After cloning/forking, and assuming you have Python installed, ensure that you have the required packages by running:
 
@@ -17,7 +17,7 @@ pip install -r requirements.txt
 ```
 
 
-## Usage
+### Usage
 
 To launch the experiment, simply run:
 
@@ -40,19 +40,19 @@ Answers are recorded using an automatically generated progressive number
 They are recorded progressively, meaning that the results of incomplete elicitations will not be lost.
 
 
-## Personalization
+### Personalization
 
 The module [`backend/shared_info.py`](backend/shared_info.py) conveniently gathers and defines several experimental details that the researcher might wish to alter. 
 These include stimuli, participation fee, currency, and instructions. 
 Changes to this file are automatically reflected in the experimental interface.
 
 
-## Acknowledgments
+### Acknowledgments
 
 The initial version of this code was developed by my excellent student and research assistant [Mathieu Leng](www.linkedin.com/in/mathieu-leng-b5556a1b1) and I am thankful for his help.
 
 
-## License
+### License
 
 Copyright (C) 2023-present  Nicolò Bertani
 
